@@ -8,6 +8,10 @@
 <body>
     <canvas width="1024"></canvas>
     <audio controls></audio>
+    <form>
+        <input type="text" name="source" id="audioAdress">
+        <input type="submit" value="确定" id="button">
+    </form>
     <script>
         const canvasEle = document.getElementsByTagName("canvas")[0];
         const audioEle = document.getElementsByTagName("audio")[0];
@@ -56,8 +60,15 @@
                 canvas.fillRect(x,y,barWidth,barHeight);
             }
         }
+        function setAudioSrc() {
+            let ele = document.getElementById('audioAdress');
+            let str = ele.value;
+            audioEle.src = str;
+            return false;
+        }
+        document.getElementById('button').onclick = setAudioSrc;
         audioEle.crossOrigin = 'anonymous';
-        audioEle.src = "https://webfs.ali.kugou.com/202304302016/60841d34740dcdc50665bbdff0b6bf55/KGTX/CLTX001/0b5bfe9ff787959e61898a04647fa602.mp3"
+        audioEle.src = "./res/丁当 - 猜不透.mp3"
         audioEle.onplay = function () {
             init();
         };
