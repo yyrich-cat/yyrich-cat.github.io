@@ -1,1 +1,66 @@
-哈喽 沃尔德
+<!DOCTYPE html>
+<html lang="zh">
+<head>
+    <meta charset="UTF-8">
+    <meta name="viewport" content="width=device-width, initial-scale=1.0">
+    <title>音乐播放器</title>
+</head>
+<body>
+    <canvas width="1024"></canvas>
+    <audio controls></audio>
+    <script>
+        const canvasEle = document.getElementsByTagName("canvas")[0];
+        const audioEle = document.getElementsByTagName("audio")[0];
+        const canvas = canvasEle.getContext('2d');
+        let analyser;
+        let dataArray;
+        function init() {
+            init = function () {
+                // 什么也不做.
+            };
+            const audioCtx = new AudioContext();
+            const source = audioCtx.createMediaElementSource(audioEle);
+            analyser = audioCtx.createAnalyser();
+            source.connect(analyser);
+            analyser.connect(audioCtx.destination);
+            dataArray = new Uint8Array(analyser.frequencyBinCount);
+            draw();
+        }
+        function makeColor(params) {
+            let str = "#";
+            for (let i = 0; i < 3; i++) {
+                let r = params[i].toString(16);
+                if (r.length < 2) {
+                    r = '0' + r;
+                }
+                str += r;
+            }
+            return str;
+        }
+        function draw(){
+            requestAnimationFrame(draw);
+            const {width,height} = canvasEle;
+            canvas.clearRect(0,0,width,height);
+            analyser.getByteFrequencyData(dataArray);
+            const length = dataArray.length;
+            const barWidth = width / length;
+            let colorData = new Uint8Array(3);
+            for (let i = 0; i < length; i++) {
+                colorData[0] = 255;
+                colorData[1] = dataArray[i] / 2;
+                colorData[2] = 255 - dataArray[i];
+                canvas.fillStyle = makeColor(colorData);
+                const barHeight = (dataArray[i] / 255) * height;
+                const x = i * barWidth;
+                const y = height - barHeight;
+                canvas.fillRect(x,y,barWidth,barHeight);
+            }
+        }
+        audioEle.crossOrigin = 'anonymous';
+        audioEle.src = "https://webfs.ali.kugou.com/202304301642/be26237a3f3a3e1cdfbe08dbd3f222c9/KGTX/CLTX003/a7e08b19c6203260305f2800dbc2574a.mp3";
+        audioEle.onplay = function () {
+            init();
+        };
+    </script>
+</body>
+</html>
