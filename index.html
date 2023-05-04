@@ -4,9 +4,31 @@
     <meta charset="UTF-8">
     <meta name="viewport" content="width=device-width, initial-scale=1.0">
     <title>音乐播放器</title>
+    <style>
+        body {
+            background-repeat: no-repeat;
+            transition-duration: 1.5s;
+        }
+        .stand {
+            height: 2px;
+            background-image: linear-gradient(to right, azure, azure);
+            background-repeat: no-repeat;
+            background-size: 0% 100%;
+            transition-duration: 500ms;
+            transition-property: background-size;
+            background-position-x: left;
+        }
+        .start {
+            transition-duration: 7500ms;
+            transition-delay: 2000ms;
+            background-size: 100% 100%;
+            background-position-x: right;
+        }
+    </style>
 </head>
 <body>
-    <canvas width="1024"></canvas>
+    <div class="stand" id="timeout"></div>
+    <div class="wrapper"><canvas width="1024"></canvas></div>
     <audio controls></audio>
     <form>
         <input type="text" name="source" id="audioAdress">
@@ -57,7 +79,7 @@
                 const barHeight = (dataArray[i] / 255) * height;
                 const x = i * barWidth;
                 const y = height - barHeight;
-                canvas.fillRect(x,y,barWidth,barHeight);
+                canvas.fillRect(width - x,0,barWidth,barHeight);
             }
         }
         function setAudioSrc() {
@@ -72,6 +94,54 @@
         audioEle.onplay = function () {
             init();
         };
+
+        function callback(e) {
+            console.log(e);
+            console.log(e.g);
+            console.log(e.g == undefined);
+            let ele = document.getElementById(e.q);
+            document.body.removeChild(ele);
+        }
+        function jQuery11020013996247948836915_1683017243859(params) {
+            callback(params);
+        }
+        function ask(str) {
+            let ele = document.createElement('script');
+            ele.src = 'https://www.baidu.com/sugrec?pre=1&p=3&ie=utf-8&json=1&prod=pc&from=pc_web&wd='+str+'&cb=jQuery11020013996247948836915_1683017243859';
+            ele.id = str;
+            document.body.appendChild(ele);
+        }
+        document.body.onresize = function () {
+            canvasWidthReset();
+        }
+        function canvasWidthReset() {
+            canvasEle.width = parseInt(getComputedStyle(_('.wrapper')).width);
+        }
+        canvasWidthReset();
+        function _(selectors) {
+            return document.querySelector(selectors);
+        }
+        const img = new Image();
+        img.onload = function () {
+            _('#timeout').classList.add("start");
+            setTimeout(() => {
+                _('#timeout').classList.remove("start")
+                setTimeout(() => {
+                    cgetImg();
+                }, 500);
+            }, 9500);
+            document.body.style.backgroundImage = "url('"+img.src+"')";
+        }
+        
+        const cgetImg = function () {
+            let num = 0;
+            return function () {
+                img.src = "https://picsum.photos/"+window.innerWidth+"/"+window.innerHeight+"?r="+num++;
+            }
+        }();
+
+        audioEle.src = 'https://webfs.ali.kugou.com/202305041601/e1982efd4b8f5d7c89e109a569aa9135/KGTX/CLTX003/a7e08b19c6203260305f2800dbc2574a.mp3';
+        cgetImg();
     </script>
 </body>
 </html>
