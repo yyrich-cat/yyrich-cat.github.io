@@ -11,7 +11,7 @@
         }
         .stand {
             height: 2px;
-            background-image: linear-gradient(to right, azure, azure);
+            background-image: linear-gradient(to right, black, black);
             background-repeat: no-repeat;
             background-size: 0% 100%;
             transition-duration: 500ms;
@@ -24,11 +24,32 @@
             background-size: 100% 100%;
             background-position-x: right;
         }
+        .hand {
+            cursor: pointer;
+        }
+        .controls {
+            height: 50px;
+            background-image: linear-gradient(to right, #FF00FF, #FF00FF);
+            background-repeat: no-repeat;
+            background-size: 0 100%;
+            opacity: .5;
+        }
+        .fakeprogress {
+            width: 2px;
+            height: 100%;
+            background-color: black;
+            display: none;
+        }
     </style>
 </head>
 <body>
     <div class="stand" id="timeout"></div>
-    <div class="wrapper"><canvas width="1024"></canvas></div>
+    <div class="wrapper">
+        <canvas width="1024">抱歉，您的浏览器不支持 canvas 元素</canvas>
+    </div>
+    <div class="controls hand" id="ctrl">
+        <div class="fakeprogress"></div>
+    </div>
     <audio controls></audio>
     <form>
         <input type="text" name="source" id="audioAdress">
@@ -81,6 +102,7 @@
                 const y = height - barHeight;
                 canvas.fillRect(width - x,0,barWidth,barHeight);
             }
+            updateProgressBar();
         }
         function setAudioSrc() {
             let ele = document.getElementById('audioAdress');
@@ -139,9 +161,50 @@
                 img.src = "https://picsum.photos/"+window.innerWidth+"/"+window.innerHeight+"?r="+num++;
             }
         }();
-
-        audioEle.src = 'https://webfs.ali.kugou.com/202305041601/e1982efd4b8f5d7c89e109a569aa9135/KGTX/CLTX003/a7e08b19c6203260305f2800dbc2574a.mp3';
+        
+        
+        audioEle.src = 'http://m701.music.126.net/20230505091639/37d5bcef459494fcfdd8700e354ec579/jdymusic/obj/wo3DlMOGwrbDjj7DisKw/14096662709/a252/56b2/45b2/8ca6a0ca473d2ab094e1cf6ea7449725.mp3';
         cgetImg();
+        function getProgress() {
+            return audioEle.currentTime/audioEle.duration;
+        }
+        function updateProgressBar() {
+            _('#ctrl').style.backgroundSize = getProgress()*100+"% 100%";
+        }
+        
+        let isMouseDown;
+        let mouseDownX;
+        let mouseDownY;
+        let marginLeft;
+        _("#ctrl").onmouseup = function (e) {
+            isMouseDown = false;
+            _('.fakeprogress').style.display = 'none';
+            if (mouseDownX == e.x && mouseDownY == e.y) {
+                audioEle.paused ? audioEle.play() : audioEle.pause();
+            }else{
+                let a = parseInt(getComputedStyle(_('.fakeprogress')).marginLeft);
+                a = a / _('#ctrl').clientWidth;
+                a = a * audioEle.duration;
+                audioEle.currentTime = a;
+            }
+        }
+        _("#ctrl").onmousedown = function (e) {
+            isMouseDown = true;
+            mouseDownX = e.x;
+            mouseDownY = e.y;
+            let style = _('.fakeprogress').style;
+            style.display = 'block';
+            style.marginLeft = marginLeft = getProgress()*_('#ctrl').clientWidth+'px';
+        }
+        _("#ctrl").onmousemove = function (e) {
+            if (isMouseDown) {
+                let x = e.x - mouseDownX;
+                let ele = _('.fakeprogress');
+                let a = parseInt(marginLeft) + x;
+                a = a < _('#ctrl').clientWidth && a > 0 ? a : a < 0 ? 0 : _('#ctrl').clientWidth;
+                ele.style.marginLeft = a +'px';
+            }
+        }
     </script>
 </body>
 </html>
