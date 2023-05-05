@@ -45,7 +45,7 @@
 <body>
     <div class="stand" id="timeout"></div>
     <div class="wrapper">
-        <canvas width="1024">抱歉，您的浏览器不支持 canvas 元素</canvas>
+        <canvas width="1024"><span>抱歉，您的浏览器不支持 canvas 元素</span></canvas>
     </div>
     <div class="controls hand" id="ctrl">
         <div class="fakeprogress"></div>
@@ -102,7 +102,7 @@
                 const y = height - barHeight;
                 canvas.fillRect(width - x,0,barWidth,barHeight);
             }
-            updateProgressBar();
+            myPlayer.updateProgressBar();
         }
         function setAudioSrc() {
             let ele = document.getElementById('audioAdress');
@@ -137,72 +137,102 @@
             canvasWidthReset();
         }
         function canvasWidthReset() {
-            canvasEle.width = parseInt(getComputedStyle(_('.wrapper')).width);
+            canvasEle.width = parseInt(getComputedStyle(document.querySelector('.wrapper')).width);
         }
         canvasWidthReset();
-        function _(selectors) {
-            return document.querySelector(selectors);
-        }
-        const img = new Image();
-        img.onload = function () {
-            _('#timeout').classList.add("start");
-            setTimeout(() => {
-                _('#timeout').classList.remove("start")
-                setTimeout(() => {
-                    cgetImg();
-                }, 500);
-            }, 9500);
-            document.body.style.backgroundImage = "url('"+img.src+"')";
-        }
         
-        const cgetImg = function () {
+        
+        
+        const cgetImg = (function () {
+            const img = new Image();
+            img.onload = function () {
+                document.querySelector("#timeout").classList.add("start");
+                setTimeout(() => {
+                    document.querySelector("#timeout").classList.remove("start")
+                    setTimeout(() => {
+                        cgetImg();
+                    }, 500);
+                }, 9500);
+                document.body.style.backgroundImage = "url('"+img.src+"')";
+            }
             let num = 0;
             return function () {
                 img.src = "https://picsum.photos/"+window.innerWidth+"/"+window.innerHeight+"?r="+num++;
             }
-        }();
+        })();
         
         cgetImg();
-        function getProgress() {
-            return audioEle.currentTime/audioEle.duration;
-        }
-        function updateProgressBar() {
-            _('#ctrl').style.backgroundSize = getProgress()*100+"% 100%";
+        audioEle.src = 'https://webfs.ali.kugou.com/202305051733/91d8c711764306b85a4f1a4521e3d69b/KGTX/CLTX003/a7e08b19c6203260305f2800dbc2574a.mp3';
+
+        
+        
+
+        class MyPlayer {
+            constructor () {
+
+            }
+            updateProgressBar () {
+                this.controls_element.style.backgroundSize = this.getProgress()*100+"% 100%";
+            }
+            getProgress () {
+                return this.audio_element.currentTime/audioEle.duration;
+            }
+            init () {
+                this.controls_element.onmouseup = (function (something) {
+                    return function (e) {
+                        something.isMouseDown = false;
+                        something.fakeprogress_ele.style.display = 'none';
+                        if (something.mouseDownX == e.x && something.mouseDownY == e.y) {
+                            audioEle.paused ? audioEle.play() : audioEle.pause();
+                        }else{
+                            let a = parseInt(getComputedStyle(something.fakeprogress_ele).marginLeft);
+                            a = a / something.controls_element.clientWidth;
+                            a = a * audioEle.duration;
+                            audioEle.currentTime = a;
+                        }
+                    }
+                })(this)
+                this.controls_element.onmousedown = (function (something) {
+                    return function (e) {
+                        (function (e) {
+                            this.isMouseDown = true;
+                            this.mouseDownX = e.x;
+                            this.mouseDownY = e.y;
+                            let style = this.fakeprogress_ele.style;
+                            style.display = 'block';
+                            style.marginLeft = this.marginLeft = this.getProgress()*this.controls_element.clientWidth+'px';
+                        }).call(something, e)
+                    }
+                })(this);
+                this.controls_element.onmousemove = (function (something) {
+                    return function (e) {
+                        (function (e) {
+                            if (this.isMouseDown) {
+                                let x = e.x - this.mouseDownX;
+                                let ele = this.fakeprogress_ele;
+                                let a = parseInt(this.marginLeft) + x;
+                                a = a < this.controls_element.clientWidth && a > 0 ? a : a < 0 ? 0 : this.controls_element.clientWidth;
+                                ele.style.marginLeft = a +'px';
+                            }
+                        }).apply(something, [e])
+                    }
+                })(this)
+            }
+            audio_element = document.getElementsByTagName("audio")[0];
+            controls_element = document.getElementById("ctrl");
+            fakeprogress_ele = document.getElementsByClassName('fakeprogress')[0];
+            
+            isMouseDown;
+            mouseDownX;
+            mouseDownY;
+            marginLeft;
         }
         
-        let isMouseDown;
-        let mouseDownX;
-        let mouseDownY;
-        let marginLeft;
-        _("#ctrl").onmouseup = function (e) {
-            isMouseDown = false;
-            _('.fakeprogress').style.display = 'none';
-            if (mouseDownX == e.x && mouseDownY == e.y) {
-                audioEle.paused ? audioEle.play() : audioEle.pause();
-            }else{
-                let a = parseInt(getComputedStyle(_('.fakeprogress')).marginLeft);
-                a = a / _('#ctrl').clientWidth;
-                a = a * audioEle.duration;
-                audioEle.currentTime = a;
-            }
-        }
-        _("#ctrl").onmousedown = function (e) {
-            isMouseDown = true;
-            mouseDownX = e.x;
-            mouseDownY = e.y;
-            let style = _('.fakeprogress').style;
-            style.display = 'block';
-            style.marginLeft = marginLeft = getProgress()*_('#ctrl').clientWidth+'px';
-        }
-        _("#ctrl").onmousemove = function (e) {
-            if (isMouseDown) {
-                let x = e.x - mouseDownX;
-                let ele = _('.fakeprogress');
-                let a = parseInt(marginLeft) + x;
-                a = a < _('#ctrl').clientWidth && a > 0 ? a : a < 0 ? 0 : _('#ctrl').clientWidth;
-                ele.style.marginLeft = a +'px';
-            }
-        }
+        let myPlayer = new MyPlayer();
+        myPlayer.init();
+
+        
+        
     </script>
 </body>
 </html>
