@@ -40,6 +40,10 @@
             background-color: black;
             display: none;
         }
+        .ch {
+            background-color: azure;
+            opacity: .5;
+        }
     </style>
 </head>
 <body>
@@ -47,13 +51,18 @@
     <div class="wrapper">
         <canvas width="1024"><span>抱歉，您的浏览器不支持 canvas 元素</span></canvas>
     </div>
-    <div class="controls hand" id="ctrl">
+    <div class="controls" id="ctrl">
         <div class="fakeprogress"></div>
     </div>
     <audio></audio>
     <form>
-        <input type="text" name="source" id="audioAdress">
-        <input type="submit" value="确定" id="button">
+        <div class="inputwrap">
+            <input type="search" name="source" id="audioAdress">
+        </div>
+        <div class="inputwrap">
+            <input type="submit" value="确定" id="button">
+        </div>
+        <div class="ch" id="ch"></div>
     </form>
     <script>
         const canvasEle = document.getElementsByTagName("canvas")[0];
@@ -111,6 +120,15 @@
             return false;
         }
         document.getElementById('button').onclick = setAudioSrc;
+        function textChanged() {
+            let ele = document.getElementById('audioAdress');
+            let str = ele.value;
+            if (str.length < 1) {
+                return;
+            }
+            ask(str);
+        }
+        document.getElementById('audioAdress').oninput = textChanged;
         audioEle.crossOrigin = 'anonymous';
         audioEle.src = "./res/丁当 - 猜不透.mp3"
         audioEle.onplay = function () {
@@ -118,11 +136,36 @@
         };
 
         function callback(e) {
-            console.log(e);
-            console.log(e.g);
-            console.log(e.g == undefined);
+            const arr = e.g;
+            if (arr) {
+                const target = document.getElementById('ch');
+                const dl = target.getElementsByTagName('ul')[0];
+                if (dl) {
+                    target.removeChild(dl);
+                }
+                const len = arr.length;
+                const df = new DocumentFragment()
+                for (let i = 0; i < len; i++) {
+                    const element = arr[i];
+                    const li = document.createElement('li');
+                    li.innerText = element.q;
+                    df.appendChild(li);
+                }
+                const ul = document.createElement('ul');
+                ul.appendChild(df);
+                target.appendChild(ul);
+            }
             let ele = document.getElementById(e.q);
-            document.body.removeChild(ele);
+            if (ele) {
+                document.body.removeChild(ele);
+            } else {
+                console.log(e);
+                console.log(e.q);
+                let arr = document.getElementsByClassName('hang_on');
+                for (let i = 0; i < arr.length; i++) {
+                    document.body.removeChild(arr[i]);
+                }
+            }
         }
         function jQuery11020013996247948836915_1683017243859(params) {
             callback(params);
@@ -131,6 +174,7 @@
             let ele = document.createElement('script');
             ele.src = 'https://www.baidu.com/sugrec?pre=1&p=3&ie=utf-8&json=1&prod=pc&from=pc_web&wd='+str+'&cb=jQuery11020013996247948836915_1683017243859';
             ele.id = str;
+            ele.classList.add('hang_on')
             document.body.appendChild(ele);
         }
         document.body.onresize = function () {
@@ -140,8 +184,6 @@
             canvasEle.width = parseInt(getComputedStyle(document.querySelector('.wrapper')).width);
         }
         canvasWidthReset();
-        
-        
         
         const cgetImg = (function () {
             const img = new Image();
@@ -162,10 +204,7 @@
         })();
         
         cgetImg();
-        audioEle.src = 'https://webfs.ali.kugou.com/202305051733/91d8c711764306b85a4f1a4521e3d69b/KGTX/CLTX003/a7e08b19c6203260305f2800dbc2574a.mp3';
-
-        
-        
+        audioEle.src = 'http://m701.music.126.net/20230506184221/d53a9de6a962e349f029cf323c053e9e/jdymusic/obj/wo3DlMOGwrbDjj7DisKw/14096510876/b5f5/1ec6/8ce4/010f67eb84fe0b5f61056c22ac73fd78.mp3';
 
         class MyPlayer {
             constructor () {
@@ -178,45 +217,47 @@
                 return this.audio_element.currentTime/audioEle.duration;
             }
             init () {
-                this.controls_element.onmouseup = (function (something) {
-                    return function (e) {
-                        something.isMouseDown = false;
-                        something.fakeprogress_ele.style.display = 'none';
-                        if (something.mouseDownX == e.x && something.mouseDownY == e.y) {
-                            audioEle.paused ? audioEle.play() : audioEle.pause();
-                        }else{
-                            let a = parseInt(getComputedStyle(something.fakeprogress_ele).marginLeft);
-                            a = a / something.controls_element.clientWidth;
-                            a = a * audioEle.duration;
-                            audioEle.currentTime = a;
-                        }
-                    }
-                })(this)
                 this.controls_element.onmousedown = (function (something) {
                     return function (e) {
-                        (function (e) {
-                            this.isMouseDown = true;
-                            this.mouseDownX = e.x;
-                            this.mouseDownY = e.y;
-                            let style = this.fakeprogress_ele.style;
-                            style.display = 'block';
-                            style.marginLeft = this.marginLeft = this.getProgress()*this.controls_element.clientWidth+'px';
-                        }).call(something, e)
+                        if (something.touchHappened) {
+                            return;
+                        }
+                        something.dn.call(something, e);
+                    }
+                })(this);
+                this.controls_element.onmouseup = (function (something) {
+                    return function (e) {
+                        if (something.touchHappened) {
+                            something.touchHappened = false;
+                            return;
+                        }
+                        something.up(e);
                     }
                 })(this);
                 this.controls_element.onmousemove = (function (something) {
                     return function (e) {
-                        (function (e) {
-                            if (this.isMouseDown) {
-                                let x = e.x - this.mouseDownX;
-                                let ele = this.fakeprogress_ele;
-                                let a = parseInt(this.marginLeft) + x;
-                                a = a < this.controls_element.clientWidth && a > 0 ? a : a < 0 ? 0 : this.controls_element.clientWidth;
-                                ele.style.marginLeft = a +'px';
-                            }
-                        }).apply(something, [e])
+                        something.mv(e);
                     }
-                })(this)
+                })(this);
+                this.controls_element.addEventListener("touchmove", (function (x) {
+                    return function (e) {
+                        let nanoevent = { x:e.touches[0].clientX };
+                        x.mv(nanoevent);
+                    }
+                })(this));
+                this.controls_element.addEventListener("touchstart", (function (x) {
+                    return function (e) {
+                        let n = { x:e.changedTouches[0].clientX, y:e.changedTouches[0].clientY };
+                        x.dn(n);
+                        x.touchHappened = true;
+                    }
+                })(this));
+                this.controls_element.addEventListener("touchend", (function (x) {
+                    return function (e) {
+                        let n = { x:e.changedTouches[0].clientX, y:e.changedTouches[0].clientY };
+                        x.up(n);
+                    }
+                })(this));
             }
             audio_element = document.getElementsByTagName("audio")[0];
             controls_element = document.getElementById("ctrl");
@@ -226,13 +267,42 @@
             mouseDownX;
             mouseDownY;
             marginLeft;
+            touchHappened;
+
+            dn (e) {
+                this.isMouseDown = true;
+                this.mouseDownX = e.x;
+                this.mouseDownY = e.y;
+                let style = this.fakeprogress_ele.style;
+                style.display = 'block';
+                style.marginLeft = this.marginLeft = this.getProgress()*this.controls_element.clientWidth+'px';
+            }
+            mv (e) {
+                if (this.isMouseDown) {
+                    let x = e.x - this.mouseDownX;
+                    let ele = this.fakeprogress_ele;
+                    let a = parseInt(this.marginLeft) + x;
+                    a = a < this.controls_element.clientWidth && a > 0 ? a : a < 0 ? 0 : this.controls_element.clientWidth;
+                    ele.style.marginLeft = a +'px';
+                }
+            }
+            up (e) {
+                this.isMouseDown = false;
+                this.fakeprogress_ele.style.display = 'none';
+                if (this.mouseDownX == e.x && this.mouseDownY == e.y) {
+                    audioEle.paused ? audioEle.play() : audioEle.pause();
+                }else{
+                    let a = parseInt(getComputedStyle(this.fakeprogress_ele).marginLeft);
+                    a = a / this.controls_element.clientWidth;
+                    a = a * audioEle.duration;
+                    audioEle.currentTime = a;
+                }
+            }
         }
         
         let myPlayer = new MyPlayer();
         myPlayer.init();
 
-        
-        
     </script>
 </body>
 </html>
