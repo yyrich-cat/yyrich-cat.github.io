@@ -25,6 +25,7 @@
         <div id="wrap"></div>
     </div>
     <div class="button" id="bt">获取位置</div>
+    <div class="button" id="bt2">观察位置</div>
     <script>
         const showInfo = document.getElementById('showInfo');
         class geol {
@@ -55,7 +56,9 @@
                 df.appendChild(this.new_div("经度：", p.longitude));
                 df.appendChild(this.new_div("海拔：", p.altitude));
                 df.appendChild(this.new_div("精度：", p.accuracy, "米"));
-                df.appendChild(this.new_div("更多信息：", JSON.stringify(pos)));
+                df.appendChild(this.new_div("海拔精度：", p.altitudeAccuracy, "米"));
+                df.appendChild(this.new_div("方向：", p.heading, "度"));
+                df.appendChild(this.new_div("速度：", p.speed, "米/秒"));
                 const wp = document.createElement('div');
                 wp.id = 'wrap';
                 wp.appendChild(df);
@@ -84,12 +87,45 @@
                     
                 }
             }
+            watch () {
+                const geolocation = navigator.geolocation;
+                if (geolocation) {
+                    this.watch_id = geolocation.getCurrentPosition((function (obj) {
+                        return function (e){
+                            obj.success(e);
+                        }
+                    })(this),(function (obj){
+                        return function (e){
+                            obj.error(e);
+                        }
+                    })(this),this.options)
+                    this.startTime = Date.now();
+                } 
+            }
+            nowatch () {
+                navigator.geolocation.clearWatch(this.watch_id);
+            }
         }
         function init () {
             document.getElementById('bt').onclick = function () {
                 const g = new geol();
                 g.get();
             }
+            const bt2 = document.getElementById('bt2');
+            bt2.onclick = (function () {
+                const g = new geol();
+                function start(){
+                    g.watch();
+                    bt2.onclick = end;
+                    bt2.innerText = '停止观察';
+                }
+                function end(){
+                    g.nowatch();
+                    bt2.onclick = start;
+                    bt2.innerText = '观察位置';
+                }
+                return start;
+            })()
         }
         init();
     </script>
