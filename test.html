@@ -26,6 +26,7 @@
     </div>
     <div class="button" id="bt">获取位置</div>
     <div class="button" id="bt2">观察位置</div>
+    <div class="button" id="bt3">一直获取位置</div>
     <script>
         const showInfo = document.getElementById('showInfo');
         class geol {
@@ -129,6 +130,13 @@
                 }
                 return start;
             })()
+            const bt3 = document.getElementById('bt3');
+            bt3.onclick = function () {
+                setInterval(function(){
+                    const g = new geol();
+                    g.get();
+                },100)
+            }
         }
         init();
     </script>
