@@ -1,0 +1,92 @@
+<!DOCTYPE html>
+<html lang="en">
+<head>
+    <meta charset="UTF-8">
+    <meta name="viewport" content="width=device-width, initial-scale=1.0">
+    <title>画布</title>
+    <style>
+        .button {
+            background-color: blueviolet;
+            border-radius: 25px;
+            display: inline-block;
+            color: cyan;
+            padding: 5px 20px;
+            cursor: pointer;
+            transition-duration: .5s;
+        }
+    </style>
+</head>
+<body>
+    <div class="wrap">
+        <canvas></canvas>
+    </div>
+    <div class="io">
+        <div class="o" id="o"></div>
+        <div class="i" id="i">
+            <textarea name="jstr" id="jstr" cols="30" rows="10" autocomplete="off" spellcheck="false" wrap="soft"></textarea>
+        </div>
+        <div class="button" id="ebutton">eval</div>
+        <div class="button" id="cbutton">clear</div>
+    </div>
+    <script>
+        const ele = {
+            canvas : document.getElementsByTagName('canvas')[0],
+            textarea : document.getElementsByTagName('textarea')[0],
+            ebt : document.getElementById('ebutton'),
+            cbt : document.getElementById('cbutton'),
+            out : document.getElementById('o'),
+        }
+        function div_log (data, fc, bc) {
+            const div = document.createElement('div');
+            div.innerText = typeof(data) == 'string' ? "'"+data+"'" : data;
+            fc && (div.style.color = fc);
+            bc && (div.style.backgroundColor = bc);
+            ele.out.appendChild(div);
+        }
+        function div_clear () {
+            ele.out.innerHTML = '';
+        }
+        const ctx = ele.canvas.getContext('2d');
+        const c = ctx;
+        function init() {
+            Array.prototype.toString = function () {
+                var len = this.length;
+                var str = '('+len+') [ ';
+                if (len) {
+                    var data;
+                    for (let i = 0; i < len; i++) {
+                        data = typeof(this[i]) == 'string' ? "'"+this[i]+"'" : this[i];
+                        if (i+1 == len) {
+                            str += data += ' ]'
+                        } else {
+                            str += data += ', ';
+                        }
+                    }
+                } else {
+                    str += ']';
+                }
+                return str;
+            }
+            document.body.onresize = function () {
+                ele.canvas.width = parseInt(getComputedStyle(document.querySelector('.wrap')).width);
+                ele.canvas.height = 300;
+            }
+            ele.ebt.onclick = function () {
+                const str = ele.textarea.value;
+                div_log(eval(str), "#aaaaaa");
+            }
+            ele.cbt.onclick = div_clear;
+            const fnLog = console.log;
+            console.log = function (...e) {
+                fnLog.apply(console,e);
+                div_log(e[0]);
+            }
+            window.onerror = function (...e) {
+                div_log(e[0]+' ['+e[2]+':'+e[3]+']', '#ff0000', '#fff0f0');
+            }
+        }
+        init();
+
+    </script>
+</body>
+</html>
