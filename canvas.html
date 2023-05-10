@@ -73,7 +73,7 @@
             }
             ele.ebt.onclick = function () {
                 const str = ele.textarea.value;
-                div_log(eval(str), "#aaaaaa");
+                div_log(('逗号运算符的间接访问',eval)(str), "#aaaaaa");
             }
             ele.cbt.onclick = div_clear;
             const fnLog = console.log;
