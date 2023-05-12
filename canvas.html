@@ -5,6 +5,12 @@
     <meta name="viewport" content="width=device-width, initial-scale=1.0">
     <title>画布</title>
     <style>
+        canvas {
+            border: 1px solid black;
+        }
+        .wrap {
+            margin-top: 10px;
+        }
         .button {
             background-color: blueviolet;
             color: cyan;
@@ -35,9 +41,6 @@
     </style>
 </head>
 <body>
-    <div class="wrap">
-        <canvas></canvas>
-    </div>
     <div class="io">
         <div class="o" id="o"></div>
         <div class="i" id="i">
@@ -47,6 +50,9 @@
         <div class="button disable" id="dnbutton">↓</div>
         <div class="button" id="ebutton">eval</div>
         <div class="button" id="cbutton">clear</div>
+    </div>
+    <div class="wrap">
+        <canvas></canvas>
     </div>
     <script>
         const ele = {
@@ -168,7 +174,9 @@
                 return false;
             }
             add (s) {
-                this.data.push(s);
+                if (s != this.data[this.data.length-1]) {
+                    this.data.push(s);
+                }
                 this.resetIndex();
                 this.setButtonState();
             }
