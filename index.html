@@ -49,7 +49,7 @@
 <body>
     <div class="stand" id="timeout"></div>
     <div class="wrapper">
-        <canvas width="1024"><span>抱歉，您的浏览器不支持 canvas 元素</span></canvas>
+        <canvas width="1024" height="150"><span>抱歉，您的浏览器不支持 canvas 元素</span></canvas>
     </div>
     <div class="controls" id="ctrl">
         <div class="fakeprogress"></div>
@@ -64,9 +64,11 @@
         </div>
         <div class="ch" id="ch"></div>
     </form>
-    <a href="test.html"><h1>地理位置</h1></a>
     <a href="canvas.html"><h1>画布</h1></a>
     <script>
+        window.onerror = function (...e){
+            alert(e);
+        }
         const canvasEle = document.getElementsByTagName("canvas")[0];
         const audioEle = document.getElementsByTagName("audio")[0];
         const canvas = canvasEle.getContext('2d');
@@ -239,17 +241,17 @@
                         something.mv(e);
                     }
                 })(this);
-                this.controls_element.addEventListener("touchmove", (function (x) {
-                    return function (e) {
-                        let nanoevent = { x:e.touches[0].clientX };
-                        x.mv(nanoevent);
-                    }
-                })(this));
                 this.controls_element.addEventListener("touchstart", (function (x) {
                     return function (e) {
                         let n = { x:e.changedTouches[0].clientX, y:e.changedTouches[0].clientY };
                         x.dn(n);
                         x.touchHappened = true;
+                    }
+                })(this));
+                this.controls_element.addEventListener("touchmove", (function (x) {
+                    return function (e) {
+                        let n = { x:e.touches[0].clientX };
+                        x.mv(n);
                     }
                 })(this));
                 this.controls_element.addEventListener("touchend", (function (x) {
