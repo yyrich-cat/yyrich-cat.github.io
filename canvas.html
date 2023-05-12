@@ -7,12 +7,30 @@
     <style>
         .button {
             background-color: blueviolet;
-            border-radius: 25px;
-            display: inline-block;
             color: cyan;
-            padding: 5px 20px;
             cursor: pointer;
-            transition-duration: .5s;
+            padding: 5px 20px;
+            display: inline-block;
+            border-radius: 25px;
+            user-select: none;
+        }
+        .disable {
+            background-color: #aaaaaa;
+            color: black;
+            cursor: default;
+        }
+        .i textarea {
+            resize: none;
+            width: 98%;
+            border: 0;
+            border-top: 1px solid #aaaaaa;
+            border-radius: 10px;
+            padding: 5px;
+        }
+        .i textarea:focus {
+            outline: 0;
+            border-top: 1px solid blueviolet;
+        
         }
     </style>
 </head>
@@ -23,8 +41,10 @@
     <div class="io">
         <div class="o" id="o"></div>
         <div class="i" id="i">
-            <textarea name="jstr" id="jstr" cols="30" rows="10" autocomplete="off" spellcheck="false" wrap="soft"></textarea>
+            <textarea name="jstr" id="jstr" cols="30" rows="5" autocomplete="off" spellcheck="false" wrap="soft"></textarea>
         </div>
+        <div class="button disable" id="upbutton">↑</div>
+        <div class="button disable" id="dnbutton">↓</div>
         <div class="button" id="ebutton">eval</div>
         <div class="button" id="cbutton">clear</div>
     </div>
@@ -34,6 +54,8 @@
             textarea : document.getElementsByTagName('textarea')[0],
             ebt : document.getElementById('ebutton'),
             cbt : document.getElementById('cbutton'),
+            ubt : document.getElementById('upbutton'),
+            dbt : document.getElementById('dnbutton'),
             out : document.getElementById('o'),
         }
         function div_log (data, fc, bc) {
@@ -57,9 +79,9 @@
                     for (let i = 0; i < len; i++) {
                         data = typeof(this[i]) == 'string' ? "'"+this[i]+"'" : this[i];
                         if (i+1 == len) {
-                            str += data += ' ]'
+                            str += data + ' ]'
                         } else {
-                            str += data += ', ';
+                            str += data + ', ';
                         }
                     }
                 } else {
@@ -73,6 +95,11 @@
             }
             ele.ebt.onclick = function () {
                 const str = ele.textarea.value;
+                if (str == '') {
+                    return;
+                }
+                ele.textarea.value = '';
+                h.add(str);
                 div_log(('逗号运算符的间接访问',eval)(str), "#aaaaaa");
             }
             ele.cbt.onclick = div_clear;
@@ -84,9 +111,76 @@
             window.onerror = function (...e) {
                 div_log(e[0]+' ['+e[2]+':'+e[3]+']', '#ff0000', '#fff0f0');
             }
+            ele.textarea.addEventListener('input', function (e) {
+                this.style.height = 'inherit';
+                this.style.height = this.scrollHeight+'px';
+            })
+            ele.textarea.style.height = ele.textarea.scrollHeight+'px';
+            ele.textarea.addEventListener('input', function (e) {
+                
+            })
+            const setTextareaValue = (d) => {
+                if (typeof(d) == 'string') {
+                    ele.textarea.value = d;
+                }
+            }
+            ele.ubt.onclick = () => {
+                setTextareaValue(h.prev());
+            }
+            ele.dbt.onclick = () => {
+                setTextareaValue(h.next());
+            }
         }
         init();
-
+        class InputHistory {
+            constructor (e = ele.textarea) {
+                this.inputElement = e;
+            }
+            data = [];
+            index;
+            textholder;
+            inputElement;
+            prev () {
+                if (this.index > 0) {
+                    if (this.index == this.data.length) {
+                        this.textholder = this.inputElement.value;
+                    }
+                    this.index --;
+                    this.setButtonState();
+                    return this.data[this.index];
+                }
+                return false;
+            }
+            next () {
+                if (this.index < this.data.length) {
+                    this.index ++;
+                    this.setButtonState();
+                    if (this.index < this.data.length) {
+                        return this.data[this.index];
+                    }
+                    if (typeof(this.textholder) == 'string') {
+                        var result = this.textholder;
+                        this.textholder = undefined;
+                        return result;
+                    }
+                    return false;
+                }
+                return false;
+            }
+            add (s) {
+                this.data.push(s);
+                this.resetIndex();
+                this.setButtonState();
+            }
+            resetIndex () {
+                this.index = this.data.length;
+            }
+            setButtonState () {
+                this.index < this.data.length ? ele.dbt.classList.remove('disable') : ele.dbt.classList.add('disable');
+                this.index > 0 ? ele.ubt.classList.remove('disable') : ele.ubt.classList.add('disable');
+            }
+        }
+        const h = new InputHistory();
     </script>
 </body>
 </html>
