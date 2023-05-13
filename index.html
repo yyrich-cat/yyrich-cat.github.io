@@ -136,7 +136,11 @@
         audioEle.crossOrigin = 'anonymous';
         audioEle.src = "./res/丁当 - 猜不透.mp3"
         audioEle.onplay = function () {
-            init();
+            try {
+                init()
+            } catch (e) {
+                alert(e);
+            }
         };
 
         function callback(e) {
