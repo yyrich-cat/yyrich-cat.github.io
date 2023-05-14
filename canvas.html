@@ -1,5 +1,5 @@
 <!DOCTYPE html>
-<html lang="en">
+<html lang="zh">
 <head>
     <meta charset="UTF-8">
     <meta name="viewport" content="width=device-width, initial-scale=1.0">
@@ -25,17 +25,18 @@
             color: black;
             cursor: default;
         }
-        .i textarea {
-            resize: none;
-            width: 98%;
-            border: 0;
-            border-top: 1px solid #aaaaaa;
+        .i div#jstr {
+            margin-top: 10px;
+            border: 1px solid #aaaaaa;
             border-radius: 10px;
             padding: 5px;
+            font-family: Consolas, "Courier New", monospace;
+            font-size: 14px;
+            line-height: 19px;
         }
-        .i textarea:focus {
+        .i div#jstr:focus {
             outline: 0;
-            border-top: 1px solid blueviolet;
+            border: 1px solid blueviolet;
         
         }
     </style>
@@ -43,13 +44,13 @@
 <body>
     <div class="io">
         <div class="o" id="o"></div>
-        <div class="i" id="i">
-            <textarea name="jstr" id="jstr" cols="30" rows="5" autocomplete="off" spellcheck="false" wrap="soft"></textarea>
-        </div>
         <div class="button disable" id="upbutton">↑</div>
         <div class="button disable" id="dnbutton">↓</div>
         <div class="button" id="ebutton">eval</div>
         <div class="button" id="cbutton">clear</div>
+        <div class="i" id="i">
+            <div id="jstr" contenteditable="true"></div>
+        </div>
     </div>
     <div class="wrap">
         <canvas></canvas>
@@ -57,7 +58,7 @@
     <script>
         const ele = {
             canvas : document.getElementsByTagName('canvas')[0],
-            textarea : document.getElementsByTagName('textarea')[0],
+            textarea : document.getElementById('jstr'),
             ebt : document.getElementById('ebutton'),
             cbt : document.getElementById('cbutton'),
             ubt : document.getElementById('upbutton'),
@@ -75,7 +76,7 @@
             ele.out.innerHTML = '';
         }
         const ctx = ele.canvas.getContext('2d');
-        const c = ctx;
+        var c = ctx;
         function init() {
             Array.prototype.toString = function () {
                 var len = this.length;
@@ -95,16 +96,19 @@
                 }
                 return str;
             }
+            document.body.onclick = () => {
+                dml.hidden();
+            }
             document.body.onresize = function () {
                 ele.canvas.width = parseInt(getComputedStyle(document.querySelector('.wrap')).width);
                 ele.canvas.height = 300;
             }
             ele.ebt.onclick = function () {
-                const str = ele.textarea.value;
+                const str = ele.textarea.innerText;
                 if (str == '') {
                     return;
                 }
-                ele.textarea.value = '';
+                ele.textarea.innerText = '';
                 h.add(str);
                 div_log(('逗号运算符的间接访问',eval)(str), "#aaaaaa");
             }
@@ -117,17 +121,52 @@
             window.onerror = function (...e) {
                 div_log(e[0]+' ['+e[2]+':'+e[3]+']', '#ff0000', '#fff0f0');
             }
-            ele.textarea.addEventListener('input', function (e) {
-                this.style.height = 'inherit';
-                this.style.height = this.scrollHeight+'px';
-            })
-            ele.textarea.style.height = ele.textarea.scrollHeight+'px';
-            ele.textarea.addEventListener('input', function (e) {
-                
-            })
+            ele.textarea.oninput = function (e) {
+                const s = ''+this.innerText;
+                const lines = s.split(/[;]/)
+                const curline = lines[lines.length - 1];
+                const words = curline.split(/[^A-Za-z0-9\u4e00-\u9fa5_]/);
+                let curword = words[words.length - 1];
+                let forsplit = curline.split(/[^A-Za-z0-9\u4e00-\u9fa5_.]/);
+                forsplit = forsplit[forsplit.length - 1];
+                const somewords = forsplit.split('.');
+                let obj = null;
+                if (somewords.length > 1) {
+                    let cw = somewords[somewords.length - 1];
+                    if (cw == curword) {
+                        var index = somewords.length - 2;
+                        function getObj(index) {
+                            var key = somewords[index];
+                            if (index == 0) {
+                                return window[key];
+                            }
+                            return getObj(--index)[key];
+                        }
+                        try {
+                            obj = getObj(index);
+                        } catch (error) {
+                            obj = null;
+                        }
+                    }
+                } else {
+                    obj = window;
+                }
+
+                if (curword == '') {
+                    dml.hidden();
+                    return;
+                }
+                if (e.data == '.') {
+                    curword = '.';
+                }
+                dml.fillcontent(curword, obj);
+                dml.update();
+                //console.info(e.data);
+                //console.info(words)
+            }
             const setTextareaValue = (d) => {
                 if (typeof(d) == 'string') {
-                    ele.textarea.value = d;
+                    ele.textarea.innerText = d;
                 }
             }
             ele.ubt.onclick = () => {
@@ -149,7 +188,7 @@
             prev () {
                 if (this.index > 0) {
                     if (this.index == this.data.length) {
-                        this.textholder = this.inputElement.value;
+                        this.textholder = this.inputElement.innerText;
                     }
                     this.index --;
                     this.setButtonState();
@@ -169,7 +208,6 @@
                         this.textholder = undefined;
                         return result;
                     }
-                    return false;
                 }
                 return false;
             }
@@ -189,6 +227,97 @@
             }
         }
         const h = new InputHistory();
+        class DisplayMemberList {
+            constructor () {
+                var s = this.div.style;
+                s.position = 'absolute';
+                s.backgroundColor = 'black';
+                s.color = 'cyan';
+                s.maxHeight = '100px';
+                s.minWidth = '150px';
+                s.overflow = 'auto';
+                s.padding = '5px'
+                
+                this.hidden();
+
+                document.body.appendChild(this.div);
+                this.div.onclick = ((that) => {
+                    return function (e) {
+                        if (e.target.parentElement.parentElement == this) {
+                            var s = ele.textarea.innerText;
+                            var sub = s.substring(0,s.length - that.s.length)
+                            ele.textarea.innerText = sub + e.target.innerText;
+                            dml.hidden();
+                        }
+                    }
+                })(this)
+                
+            }
+            div = document.createElement('div');
+            s = '';
+            update () {
+                const rect = this.getRect()
+                if (rect.top == 0 && rect.left == 0 || this.div.innerText == '') {
+                    this.hidden();
+                    return;
+                }
+                this.display();
+                const s = this.div.style;
+                const dwd = this.div.getBoundingClientRect().width;
+                const wwd = window.innerWidth;
+                s.top = rect.bottom + 'px';
+                s.left = (rect.left+dwd > wwd ? wwd-dwd : rect.left) + 'px';
+            }
+            getRect () {
+                var selection = window.getSelection();
+                var range = selection.getRangeAt(0);
+                return range.getBoundingClientRect();
+            }
+            hidden () {
+                this.div.style.display = 'none';
+            }
+            display () {
+                this.div.style.display = 'block';
+            }
+            fillcontent (str, obj) {
+                if (!str || !obj) {
+                    return;
+                }
+                if (typeof(obj) == 'object') {
+                    var arr = Object.getOwnPropertyNames(obj);
+                    for (let k in obj) {
+                        arr.push(k);
+                    }
+                    arr = Array.from(new Set(arr));
+                    const len = arr.length;
+                    const result = [];
+                    if (str == '.') {
+                        this.s = '';
+                        result = arr;
+                    } else {
+                        this.s = str;
+                        for (let i = 0; i < len; i++) {
+                            const tmp = arr[i].match(str);
+                            tmp && result.push(tmp);
+                        }
+                    }
+
+                    result.sort((a,b) => a.index - b.index);
+                    const w = document.createElement('div');
+                    for (let i = 0; i < result.length; i++) {
+                        
+                        var d = document.createElement('div');
+                        d.innerText = result[i].input;
+                        w.appendChild(d);
+                    }
+                    this.div.innerText = '';
+                    this.div.appendChild(w);
+                } else {
+                    this.div.innerText = '★' + obj.toString();
+                }
+            }
+        }
+        const dml = new DisplayMemberList();
     </script>
 </body>
 </html>
