@@ -289,16 +289,15 @@
                     }
                     arr = Array.from(new Set(arr));
                     const len = arr.length;
-                    var result = [];
+                    const result = [];
                     if (str == '.') {
                         this.s = '';
-                        result = arr;
                     } else {
                         this.s = str;
-                        for (let i = 0; i < len; i++) {
-                            const tmp = arr[i].match(str);
-                            tmp && result.push(tmp);
-                        }
+                    }
+                    for (let i = 0; i < len; i++) {
+                        const tmp = arr[i].match(str);
+                        tmp && result.push(tmp);
                     }
 
                     result.sort((a,b) => a.index - b.index);
