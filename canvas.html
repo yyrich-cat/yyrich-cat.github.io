@@ -154,14 +154,8 @@
                 if (e.data == '.') {
                     curword = '.';
                 }
-                if (curword == '') {
-                    dml.hidden();
-                    return;
-                }
                 dml.fillcontent(curword, obj);
                 dml.update();
-                //console.info(e.data);
-                //console.info(words)
             }
             const setTextareaValue = (d) => {
                 if (typeof(d) == 'string') {
@@ -280,6 +274,7 @@
             }
             fillcontent (str, obj) {
                 if (!str || !obj) {
+                    this.div.innerText = '';
                     return;
                 }
                 if (typeof(obj) == 'object') {
