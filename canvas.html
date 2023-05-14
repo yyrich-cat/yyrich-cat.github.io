@@ -151,13 +151,12 @@
                 } else {
                     obj = window;
                 }
-
+                if (e.data == '.') {
+                    curword = '.';
+                }
                 if (curword == '') {
                     dml.hidden();
                     return;
-                }
-                if (e.data == '.') {
-                    curword = '.';
                 }
                 dml.fillcontent(curword, obj);
                 dml.update();
