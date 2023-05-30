@@ -45,14 +45,14 @@
                 const r = Math.min(canvas.width, canvas.height) / 2;
                 const centerX = canvas.width / 2;
                 const centerY = canvas.height / 2;
-                const rad = getRandom(0, 360) * Math.PI / 180;
-                if (x && y) {
-                    this.x = x;
-                    this.y = y;
+                let rad;
+                if (x || y) {
+                    rad = getRandom(x, y) * Math.PI / 180;
                 }else{
-                    this.x = centerX + r * Math.cos(rad);
-                    this.y = centerY + r * Math.sin(rad);
+                    rad = getRandom(0, 360) * Math.PI / 180;
                 }
+                this.x = centerX + r * Math.cos(rad);
+                this.y = centerY + r * Math.sin(rad);
                 this.size = getRandom(1, 3);
             }
 
@@ -94,10 +94,6 @@
             }
         }
         const particles = [];
-        for (let index = 0; index < 1000; index++) {
-            const p = new Particle;
-            particles.push(p);
-        }
         function draw() {
             clear();
             update();
@@ -114,6 +110,7 @@
         var text = "";
         var newText = location.href.split('?')[1] || "Hello World";
         newText = decodeURI(newText);
+
         function update () {
             if (text == newText) {
                 return;
@@ -127,18 +124,34 @@
             const points = getPoints();
             clear()
             const length = points.length;
+            particles.length = 0;
+            // for (let index = 0; index < length; index++) {
+            //     const element = points[index];
+            //     let p = new Particle;
+            //     particles.push(p);
+            //     p.moveTo(element.x,element.y);
+            // }
+            let slowWalk = 0;
+            const foo = () => {
+                if (slowWalk < length) {
+                    let step = (length - slowWalk) < 500 ? length : slowWalk + 500;
+                    for (let index = slowWalk; index < step; index++) {
+                        const element = points[index];
+                        const p = particles[index];
+                        p.moveTo(element.x,element.y);
+                    }
+                    slowWalk = slowWalk + 500;
+                    setTimeout(() => {
+                        foo()
+                    }, 500);
+                }
+            }
             for (let index = 0; index < length; index++) {
                 const element = points[index];
-                let p = particles[index];
-                if (!p) {
-                    p = new Particle;
-                    particles.push(p);
-                }
-                p.moveTo(element.x,element.y);
+                let p = new Particle;
+                particles.push(p);
             }
-            if (particles.length >= points.length) {
-                particles.splice(points.length);
-            }
+            foo();
         }
 
         function getPoints() {
