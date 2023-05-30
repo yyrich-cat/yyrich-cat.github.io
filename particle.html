@@ -20,7 +20,7 @@
     <canvas>您的浏览器不支持canvas</canvas>
     <script>
         const canvas = document.getElementsByTagName("canvas")[0];
-        const c = canvas.getContext("2d", {willReadFrequently: true});
+        const c = canvas.getContext("2d", { willReadFrequently : true });
         function initCanvasSize() {
             canvas.width = window.innerWidth;
             canvas.height = window.innerHeight;
@@ -140,8 +140,6 @@
                 particles.splice(points.length);
             }
         }
-        update()
-
 
         function getPoints() {
             const points = c.getImageData(0,0,canvas.width,canvas.height);
