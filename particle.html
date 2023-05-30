@@ -1,0 +1,175 @@
+<!DOCTYPE html>
+<html lang="zh">
+<head>
+    <meta charset="UTF-8">
+    <meta name="viewport" content="width=device-width, initial-scale=1.0">
+    <title>粒子</title>
+    <style>
+        body {
+            margin: 0;
+        }
+        canvas {
+            background-color: black;
+            display: block;
+            width: 100vw;
+            height: 100vh;
+        }
+    </style>
+</head>
+<body>
+    <canvas>您的浏览器不支持canvas</canvas>
+    <script>
+        const canvas = document.getElementsByTagName("canvas")[0];
+        const c = canvas.getContext("2d", {willReadFrequently: true});
+        function initCanvasSize() {
+            canvas.width = window.innerWidth * devicePixelRatio;
+            canvas.height = window.innerHeight * devicePixelRatio;
+        }
+        initCanvasSize();
+
+        /**
+         * 获取 【min, max】 之间的随机数
+         */
+        function getRandom(min, max) {
+            return Math.floor(Math.random()*(max + 1 - min) + min);
+        }
+        class PointA {
+            constructor (x, y, alpha) {
+                this.x = x;
+                this.y = y;
+                this.alpha = alpha;
+            }
+        }
+        class Particle {
+            constructor (x, y) {
+                const r = Math.min(canvas.width, canvas.height) / 2;
+                const centerX = canvas.width / 2;
+                const centerY = canvas.height / 2;
+                const rad = getRandom(0, 360) * Math.PI / 180;
+                if (x && y) {
+                    this.x = x;
+                    this.y = y;
+                }else{
+                    this.x = centerX + r * Math.cos(rad);
+                    this.y = centerY + r * Math.sin(rad);
+                }
+                this.size = getRandom(2 * devicePixelRatio, 7 * devicePixelRatio);
+            }
+
+            draw () {
+                c.beginPath();
+                c.fillStyle = "#ff80f5ff";
+                switch (this.size / devicePixelRatio) {
+                    case 3:
+                        c.fillStyle = "#ff80f5dd";
+                        break;
+                    case 4:
+                        c.fillStyle = "#ff80f5bb";
+                        break;
+                    case 5:
+                        c.fillStyle = "#ff80f599";
+                        break;
+                    case 6:
+                        c.fillStyle = "#ff80f577";
+                        break;
+                    case 7:
+                        c.fillStyle = "#ff80f555";
+                        break;
+                    default:
+                        break;
+                }
+                c.arc(this.x, this.y, this.size, 0, Math.PI*2);
+                c.fill();
+            }
+            moveTo (x, y) {
+                const duration = 5000;
+                const delay = getRandom(0, 3000) * this.size;
+                const startX = this.x;
+                const startY = this.y;
+                const startTime = Date.now() + delay;
+
+                const move = () => {
+                    const raf = () => {
+                        requestAnimationFrame(move);
+                        return t / duration;
+                    }
+                    const t = Date.now() - startTime;
+                    let per = (t / duration) > 1 ? 1 : raf();
+                    per = per < 0 ? 0 : per;
+                    this.x = startX + (x - startX) * per;
+                    this.y = startY + (y - startY) * per;
+                }
+                move();
+            }
+        }
+        const particles = [];
+        for (let index = 0; index < 1000; index++) {
+            const p = new Particle;
+            particles.push(p);
+        }
+        function draw() {
+            clear();
+            update();
+            for (let index = 0; index < particles.length; index++) {
+                const p = particles[index];
+                p.draw();
+            }
+            requestAnimationFrame(draw);
+        }
+        draw();
+        function clear() {
+            c.clearRect(0,0,canvas.width,canvas.height);
+        }
+        var text = "";
+        var newText = location.href.split('?')[1] || "Hello World";
+        function update () {
+            if (text == newText) {
+                return;
+            }
+            text = newText;
+            c.fillStyle = "#fff";
+            c.textBaseline = 'middle';
+            c.textAlign = 'center';
+            c.font = (140 * devicePixelRatio)+"px Arial";
+            c.fillText(text, canvas.width/2, canvas.height/2);
+            const points = getPoints();
+            clear()
+            const length = points.length;
+            for (let index = 0; index < length; index++) {
+                const element = points[index];
+                let p = particles[index];
+                if (!p) {
+                    p = new Particle;
+                    particles.push(p);
+                }
+                p.moveTo(element.x,element.y);
+            }
+            if (particles.length >= points.length) {
+                particles.splice(points.length);
+            }
+        }
+        update()
+
+
+        function getPoints() {
+            const points = c.getImageData(0,0,canvas.width,canvas.height);
+            const result = [];
+            const gap = 6;
+            for (let i = 0; i < points.width; i+=gap) {
+                for (let j = 0; j < points.height; j+=gap) {
+                    const index = (i + j * points.width) * 4;
+                    const r = points.data[index];
+                    const g = points.data[index + 1];
+                    const b = points.data[index + 2];
+                    const a = points.data[index + 3];
+                    if (r == 255 && b == 255 && g == 255) {
+                        result.push(new PointA(i, j, a));
+                    }
+                }
+            }
+            return result;
+        }
+        
+    </script>
+</body>
+</html>
