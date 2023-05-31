@@ -41,44 +41,33 @@
             }
         }
         class Particle {
-            constructor (x, y) {
+            constructor (a = 0, b = 360) {
                 const r = Math.min(canvas.width, canvas.height) / 2;
                 const centerX = canvas.width / 2;
                 const centerY = canvas.height / 2;
-                let rad;
-                if (x || y) {
-                    rad = getRandom(x, y) * Math.PI / 180;
-                }else{
-                    rad = getRandom(0, 360) * Math.PI / 180;
-                }
+                const rad = getRandom(a, b) * Math.PI / 180;
+                
                 this.x = centerX + r * Math.cos(rad);
                 this.y = centerY + r * Math.sin(rad);
-                this.size = getRandom(1, 3);
+                this.size = getRandom(this.minSize, this.maxSize);
             }
-
             draw () {
-                c.beginPath();
-                c.fillStyle = "#ff80f5ff";
-                switch (this.size) {
-                    case 2:
-                        c.fillStyle = "#ff80f599";
-                        break;
-                    case 3:
-                        c.fillStyle = "#ff80f555";
-                        break;
-                    default:
-                        break;
+                const getAlpha = () => {
+                    const cha = this.maxSize - this.minSize;
+                    // 85 == hex"55"
+                    const alpha = 85 + 170 - (this.size - this.minSize) * 170 / cha
+                    return alpha;
                 }
+                c.beginPath();
+                c.fillStyle = "#ff80f5" + getAlpha().toString(16);
                 c.arc(this.x, this.y, this.size, 0, Math.PI*2);
                 c.fill();
             }
-            moveTo (x, y) {
-                const duration = 5000;
-                const delay = getRandom(0, 3000) * this.size;
+            moveTo (p = new PointA, duration = 5000, delay = 0) {
+                delay = delay || this.size * getRandom(0, 3000);
                 const startX = this.x;
                 const startY = this.y;
                 const startTime = Date.now() + delay;
-
                 const move = () => {
                     const raf = () => {
                         requestAnimationFrame(move);
@@ -87,23 +76,24 @@
                     const t = Date.now() - startTime;
                     let per = (t / duration) > 1 ? 1 : raf();
                     per = per < 0 ? 0 : per;
-                    this.x = startX + (x - startX) * per;
-                    this.y = startY + (y - startY) * per;
+                    this.x = startX + (p.x - startX) * per;
+                    this.y = startY + (p.y - startY) * per;
                 }
                 move();
             }
         }
-        const particles = [];
+        Particle.prototype.maxSize = 3;
+        Particle.prototype.minSize = 1;
+        const particles = [new Particle];
+
         function draw() {
             clear();
             update();
-            for (let index = 0; index < particles.length; index++) {
-                const p = particles[index];
-                p.draw();
-            }
+            particles.forEach((p) => { p.draw(); });
             requestAnimationFrame(draw);
         }
         draw();
+
         function clear() {
             c.clearRect(0,0,canvas.width,canvas.height);
         }
@@ -125,33 +115,12 @@
             clear()
             const length = points.length;
             particles.length = 0;
-            // for (let index = 0; index < length; index++) {
-            //     const element = points[index];
-            //     let p = new Particle;
-            //     particles.push(p);
-            //     p.moveTo(element.x,element.y);
-            // }
-            let slowWalk = 0;
-            const foo = () => {
-                if (slowWalk < length) {
-                    let step = (length - slowWalk) < 500 ? length : slowWalk + 500;
-                    for (let index = slowWalk; index < step; index++) {
-                        const element = points[index];
-                        const p = particles[index];
-                        p.moveTo(element.x,element.y);
-                    }
-                    slowWalk = slowWalk + 500;
-                    setTimeout(() => {
-                        foo()
-                    }, 500);
-                }
-            }
             for (let index = 0; index < length; index++) {
                 const element = points[index];
                 let p = new Particle;
                 particles.push(p);
+                p.moveTo(element, length, 2*getRandom(index,length));
             }
-            foo();
         }
 
         function getPoints() {
