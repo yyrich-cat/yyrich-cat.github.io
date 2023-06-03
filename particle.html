@@ -92,7 +92,7 @@
             particles.forEach((p) => { p.draw(); });
             requestAnimationFrame(draw);
         }
-        draw();
+        //draw();
 
         function clear() {
             c.clearRect(0,0,canvas.width,canvas.height);
@@ -140,6 +140,247 @@
                 }
             }
             return result;
+        }
+
+
+
+
+        let a = 0;
+        let d_blocks = [];
+        let c_blocks = [];
+        let b_block;
+        let b_offset;
+        const gameWidth = 12;        // 小于 30
+        const gameHeight = 21;
+        const block_size = 25;
+        
+        const full_block = 0b111111111111;
+        const none_block_but_wall = 0b100000000001;
+        for (let index = 0; index < gameHeight; index++) {
+            d_blocks.push(none_block_but_wall);
+            c_blocks.push(0);
+        }
+        d_blocks[gameHeight-1] = full_block;
+
+        function upmove(arr = [], pad = 0) {
+            const result = arr.slice(1,arr.length);
+            result.push(pad);
+            return result;
+        }
+        function downmove(arr = [], pad = 0) {
+            return [pad].concat(arr.slice(0, arr.length - 1));
+        }
+        function randomBlock() {
+            const lookTable = [
+                [0b010,0b111,0b000],
+                [0b110,0b011,0b000],
+                [0b011,0b011,0b000],
+                [0b100,0b111,0b000],
+                [0b001,0b111,0b000],
+                [0b001,0b001,0b111],
+                [0b000,0b111,0b000],
+                [0b01,0b11],
+                [0b01,0b10],
+                [0b11,0b11],
+                [0b0000,0b0000,0b1111,0b0000],
+                [0b0000,0b0001,0b1111,0b0000],
+                [0b0000,0b1000,0b1111,0b0000],
+                [0b00000,0b00000,0b11111,0b00000,0b00000],
+            ]
+            return lookTable[getRandom(0, lookTable.length-1)];
+        }
+        function putBlock(block, offset = 0) {
+            let putResult = [];
+            const blen = block.length;
+            for (let i = 0; i < gameHeight; i++) {
+                const index = i - offset;
+                if (index >= 0 && index < blen) {
+                    const n = Math.floor((gameWidth - block.length) / 2 + 0.5) + __offset;
+                    const data = n < 0 ? block[index] >> -n : block[index] << n;
+                    putResult.push(data);
+                } else {
+                    putResult.push(0);
+                }
+            }
+            return putResult;
+        }
+        function countSpaceLine(block) {
+            let count = 0;
+            for (let i = 0; i < block.length; i++) {
+                if (block[i]) {
+                    break;
+                }
+                count ++;
+            }
+            return count;
+        }
+        
+        const sx = Math.floor((canvas.width - gameWidth*block_size) / 2);
+        const sy = Math.floor((canvas.height - gameHeight*block_size) / 2);
+
+        function paint() {
+            if (Date.now() - startTime > 1000) {
+                startTime = Date.now();
+                startOffset++;
+                c_blocks = putBlock(b_block, startOffset);
+                
+                if (isOverlapped()) {
+                    c_blocks = upmove(c_blocks);
+                    for (let index = 0; index < gameHeight; index++) {
+                        d_blocks[index]  = d_blocks[index] | c_blocks[index];
+                    }
+                    pushRandomBlock();
+                    
+                    //
+                    const range = gameHeight - 1;
+                    for (let index = range - 1; index >= 0; index--) {
+                        if (d_blocks[index] == full_block) {
+                            d_blocks[index] = none_block_but_wall;
+                        }
+                    }
+                    // 
+                    d_blocks.sort((a,b) => { return a == none_block_but_wall && -6;})
+                    
+                    //console.log(d_blocks);
+                }
+            }
+            clear();
+            for (let i = 0; i < gameHeight - 1; i++) {
+                for (let j = 1; j < gameWidth - 1; j++) {
+                    c.fillStyle = _test(c_blocks[i], j, gameWidth) ? "#ff80f5" : "#fff";
+                    c.fillRect(sx + j*block_size, sy + i*block_size,
+                    block_size - 1, block_size - 1);
+                    if (_test(d_blocks[i], j, gameWidth)) {
+                        c.fillStyle = "#aaa";
+                        c.fillRect(sx + j*block_size, sy + i*block_size,
+                        block_size - 1, block_size - 1);
+                    }
+                }
+            }
+            if (isOverlapped()) {
+                c.fillStyle = "#ff80f5";
+                c.textBaseline = 'middle';
+                c.textAlign = 'center';
+                c.font = "70px Arial";
+                c.fillText("游戏结束", canvas.width/2, canvas.height/2);
+                return;
+            }
+            requestAnimationFrame(paint);
+        }
+        function isOverlapped(check_canvas = c_blocks) {
+            for (let i = 0; i < gameHeight; i++) {
+                if (d_blocks[i] & check_canvas[i]) {
+                    return true;
+                }
+            }
+            return false;
+        }
+        let startOffset;
+        let __offset = 0;
+        pushRandomBlock();
+        let startTime = Date.now();
+        paint();
+        function pushRandomBlock() {
+            b_block = randomBlock();
+            startOffset = -countSpaceLine(b_block);
+            __offset = 0;
+            c_blocks = putBlock(b_block, startOffset);
+        }
+
+        document.onkeydown = (e) => {
+            //console.log(e.key);
+            const canMove = (v) =>{
+                const moveResult = [];
+                const obj = {
+                    left : (v) => { return v << 1; },
+                    right: (v) => { return v >> 1; }
+                }
+                for (let i = 0; i < c_blocks.length; i++) {
+                    moveResult.push(obj[v](c_blocks[i]));
+                }
+                return !isOverlapped(moveResult);
+            }
+            const action = {
+                ArrowUp : () => {
+                    const rotateResult = rotatBlock(b_block);
+                    const result = putBlock(rotateResult, startOffset);
+                    if (!isOverlapped(result)) {
+                        b_block = rotateResult;
+                    }
+                },
+                ArrowDown : () => {
+                    const result = putBlock(b_block, startOffset + 1);
+                    if (!isOverlapped(result)) {
+                        startOffset++;
+                    }
+                },
+                ArrowLeft : () => { canMove("left") && __offset++; },
+                ArrowRight : () => { canMove("right") && __offset--; }
+            };
+            typeof(action[e.key]) == "function" && action[e.key]();
+            c_blocks = putBlock(b_block, startOffset);
+        }
+        function rotatBlock(b = []) {
+            // src >> dst :
+            // x,y >> y,n-x                n:length-1;
+            const len = b.length;
+            const maxIndex = len - 1;
+            let result = [];
+            for (let i = 0; i < len; i++) {
+                result.push(0);
+            }
+            for (let i = 0; i < len; i++) {
+                const element = b[i];
+                for (let j = 0; j < len; j++) {
+                    if (_test(element, j, len)) {
+                        result[maxIndex - j] = _set(result[maxIndex-j], i, len);
+                    }
+                }
+            }
+            
+            function _set(value, index, length) {
+                const count = length - 1 - index;
+                return value | 1 << count;
+            }
+            return result;
+        }
+        function _test(value, index, length) {
+            const count = length - 1 - index;
+            return value & 1 << count;
+        }
+        
+        
+        // For Touch: 
+        let touchStartInfo = {
+            time: 0,
+            x: 0,
+            y: 0,
+        };
+        document.ontouchstart = (e) => {
+            touchStartInfo.time = e.timeStamp;
+            touchStartInfo.x = e.touches[0].clientX;
+            touchStartInfo.y = e.touches[0].clientY;
+        }
+        document.ontouchend = (e) => {
+            const duration = e.timeStamp - touchStartInfo.time;
+            if (500 < duration) {
+                return;
+            }
+            const {clientX, clientY} = e.changedTouches[0];
+            const rect = {
+                width : clientX - touchStartInfo.x,
+                height : clientY - touchStartInfo.y
+            };
+            if (rect.width == 0 && rect.height == 0) {
+                document.onkeydown({key:"ArrowDown"});
+                return;
+            }
+            const d = Math.abs(rect.width) < Math.abs(rect.height) ? 'height' : 'width';
+            const c = {
+                width : (x) => x < 0 ? "ArrowLeft" : "ArrowRight",
+                height : (y) => y < 0 ? "ArrowUp" : "ArrowDown"
+            }
+            document.onkeydown({key:c[d](rect[d])});
         }
         
     </script>
