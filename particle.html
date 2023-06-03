@@ -358,19 +358,32 @@
             notEnd : false,
         };
         document.ontouchstart = (e) => {
-            touchStartInfo.time = e.timeStamp;
-            touchStartInfo.x = e.touches[0].clientX;
-            touchStartInfo.y = e.touches[0].clientY;
-            touchStartInfo.notEnd = true;
-            setTimeout(() => {
-                const intervalId = setInterval(() => {
-                    if (touchStartInfo.notEnd) {
-                        document.onkeydown({key:"ArrowDown"});
-                    } else {
-                        clearInterval(intervalId);
+            const docstarttime = Date.now() - e.timeStamp;
+            function getTimeStamp() {
+                return Date.now() - docstarttime;
+            }
+            document.ontouchstart = (e) => {
+                touchStartInfo.time = e.timeStamp;
+                touchStartInfo.x = e.touches[0].clientX;
+                touchStartInfo.y = e.touches[0].clientY;
+                touchStartInfo.notEnd = true;
+                setTimeout(() => {
+                    if (getTimeStamp() - touchStartInfo.time < 500 || !touchStartInfo.notEnd) {
+                        return;
                     }
-                }, 30);
-            }, 500);
+                    const intervalId = setInterval(() => {
+                        if (touchStartInfo.notEnd) {
+                            document.onkeydown({key:"ArrowDown"});
+                        } else {
+                            clearInterval(intervalId);
+                        }
+                    }, 30);
+                }, 510);
+            }
+            document.ontouchstart(e);
+        }
+        document.ontouchmove = () => {
+            touchStartInfo.notEnd = false;
         }
         document.ontouchend = (e) => {
             touchStartInfo.notEnd = false;
@@ -383,7 +396,7 @@
                 width : clientX - touchStartInfo.x,
                 height : clientY - touchStartInfo.y
             };
-            if (Math.abs(rect.width) < 10 && Math.abs(rect.height) < 10) {
+            if (Math.abs(rect.width) < 5 && Math.abs(rect.height) < 5) {
                 document.onkeydown({key:"ArrowDown"});
                 return;
             }
