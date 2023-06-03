@@ -355,13 +355,25 @@
             time: 0,
             x: 0,
             y: 0,
+            notEnd : false,
         };
         document.ontouchstart = (e) => {
             touchStartInfo.time = e.timeStamp;
             touchStartInfo.x = e.touches[0].clientX;
             touchStartInfo.y = e.touches[0].clientY;
+            touchStartInfo.notEnd = true;
+            setTimeout(() => {
+                const intervalId = setInterval(() => {
+                    if (touchStartInfo.notEnd) {
+                        document.onkeydown({key:"ArrowDown"});
+                    } else {
+                        clearInterval(intervalId);
+                    }
+                }, 30);
+            }, 500);
         }
         document.ontouchend = (e) => {
+            touchStartInfo.notEnd = false;
             const duration = e.timeStamp - touchStartInfo.time;
             if (500 < duration) {
                 return;
@@ -371,7 +383,7 @@
                 width : clientX - touchStartInfo.x,
                 height : clientY - touchStartInfo.y
             };
-            if (rect.width == 0 && rect.height == 0) {
+            if (Math.abs(rect.width) < 10 && Math.abs(rect.height) < 10) {
                 document.onkeydown({key:"ArrowDown"});
                 return;
             }
@@ -382,6 +394,7 @@
             }
             document.onkeydown({key:c[d](rect[d])});
         }
+        canvas.oncontextmenu = () => false;
         
     </script>
 </body>
