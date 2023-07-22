@@ -7,9 +7,26 @@
     <title>生成隐藏图工具</title>
     <style>
         img,canvas {
-            width: 300px;
             display: block;
         }
+        .layer {
+            position: fixed;
+            inset: 0;
+            backdrop-filter: blur(10px);
+        }
+        .layer>div {
+            box-shadow: 0px 0px 20px aqua;
+            background-color: azure;
+            width: 300px;
+            height: 150px;
+            position: absolute;
+            inset: 0;
+            margin: auto;
+            line-height: 2;
+            padding: 25px;
+            border-radius: 25px;
+        }
+        
     </style>
 </head>
 <body>
@@ -24,23 +41,48 @@
         <img id="img2">
     </div>
     <div class="wrap">
-        <button>生成</button>
+        <div>
+            <button>生成</button>
+            <button>关灯</button>
+            <button>调整大小</button>
+        </div>
         <canvas></canvas>
+    </div>
+    <div class="layer">
+        <div>
+            <div><label for="inputw">宽度</label><input type="number" id="inputw">px</div>
+            <div><label for="inputh">高度</label><input type="number" id="inputh">px</div>
+            <div><button>确定</button></div>
+        </div>
     </div>
     <script>
         var input1 = document.querySelector("#input1");
         var input2 = document.querySelector("#input2");
+        var inputw = document.querySelector("#inputw");
+        var inputh = document.querySelector("#inputh");
         var img1 = document.querySelector("#img1");
         var img2 = document.querySelector("#img2");
         var canvas = document.getElementsByTagName('canvas')[0];
         var button = document.getElementsByTagName('button')[0];
+        var on_off = document.getElementsByTagName('button')[1];
+        var resize = document.getElementsByTagName('button')[2];
+        var ok_rsz = document.getElementsByTagName('button')[3];
         var c = canvas.getContext('2d', { willReadFrequently : true });
         button.onclick = function() {
-            var w1 = img1.naturalWidth;
-            var h1 = img1.naturalHeight;
-            var w2 = img2.naturalWidth;
-            var h2 = img2.naturalHeight;
-            if (!(w1 && w2)) {
+            const needNatural = false;
+            var w1,h1,w2,h2;
+            if (needNatural) {
+                w1 = img1.naturalWidth;
+                h1 = img1.naturalHeight;
+                w2 = img2.naturalWidth;
+                h2 = img2.naturalHeight;
+            } else {
+                w1 = img1.width;
+                h1 = img1.height;
+                w2 = img2.width;
+                h2 = img2.height;
+            }
+            if (!(img1.naturalWidth && img2.naturalWidth)) {
                 alert("当前无法继续执行！（需要提供两张图片）");
                 return;
             }
@@ -50,11 +92,11 @@
             canvas.height = height;
             c.fillStyle = 'white';
             c.fillRect(0,0,width,height);
-            c.drawImage(img1,(width-w1)/2,(height-h1)/2);
+            c.drawImage(img1,(width-w1)/2,(height-h1)/2,w1,h1);
             const data1 = c.getImageData(0,0,width,height);
             c.fillStyle = 'black';
             c.fillRect(0,0,width,height);
-            c.drawImage(img2,(width-w2)/2,(height-h2)/2);
+            c.drawImage(img2,(width-w2)/2,(height-h2)/2,w2,h2);
             const data2 = c.getImageData(0,0,width,height);
             const result = make(data1, data2);
             c.putImageData(result,0,0);
@@ -68,6 +110,17 @@
             }
             a.href = canvas.toDataURL();
             a.download = "";
+        }
+        on_off.onclick = function light_off() {
+            on_off.innerHTML = "开灯";
+            document.body.style.backgroundColor = "black";
+            document.body.style.color = "white";
+            on_off.onclick = () => {
+                on_off.innerHTML = "关灯";
+                document.body.style = "";
+                document.body.style.backgroundColor = "white";
+                on_off.onclick = light_off;
+            }
         }
         input1.onchange = input2.onchange = function() {
             if (this.files.length == 0) {
@@ -106,6 +159,27 @@
                 }
             }
             return result;
+        }
+        function setTheyStyle(str) {
+            img1.style = img2.style = canvas.style = str;
+        }
+        setTheyStyle("width: 300px");
+        inputw.onfocus = inputh.onfocus = function () {
+            var other = inputw == this ? inputh : inputw;
+            other.value = '';
+        }
+        ok_rsz.onclick = function () {
+            if (inputw.value != '') {
+                setTheyStyle(`width: ${inputw.value}px`);
+            } else if (inputh.value != '') {
+                setTheyStyle(`height: ${inputh.value}px`);
+            } else {
+                setTheyStyle("width: 300px");
+            }
+            document.getElementsByClassName('layer')[0].style.display = "none";
+        }
+        resize.onclick = function () {
+            document.getElementsByClassName('layer')[0].style.display = "block";
         }
     </script>
 </body>
