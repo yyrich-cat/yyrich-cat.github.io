@@ -1,0 +1,112 @@
+<!DOCTYPE html>
+<html lang="zh">
+<head>
+    <meta charset="UTF-8">
+    <meta http-equiv="X-UA-Compatible" content="IE=edge">
+    <meta name="viewport" content="width=device-width, initial-scale=1.0">
+    <title>生成隐藏图工具</title>
+    <style>
+        img,canvas {
+            width: 300px;
+            display: block;
+        }
+    </style>
+</head>
+<body>
+    <div class="wrap">
+        <div>选择显示的图片：</div>
+        <input type="file" id="input1" accept="image/*">
+        <img id="img1">
+    </div>
+    <div class="wrap">
+        <div>选择隐藏的图片：</div>
+        <input type="file" id="input2" accept="image/*">
+        <img id="img2">
+    </div>
+    <div class="wrap">
+        <button>生成</button>
+        <canvas></canvas>
+    </div>
+    <script>
+        var input1 = document.querySelector("#input1");
+        var input2 = document.querySelector("#input2");
+        var img1 = document.querySelector("#img1");
+        var img2 = document.querySelector("#img2");
+        var canvas = document.getElementsByTagName('canvas')[0];
+        var button = document.getElementsByTagName('button')[0];
+        var c = canvas.getContext('2d', { willReadFrequently : true });
+        button.onclick = function() {
+            var w1 = img1.naturalWidth;
+            var h1 = img1.naturalHeight;
+            var w2 = img2.naturalWidth;
+            var h2 = img2.naturalHeight;
+            if (!(w1 && w2)) {
+                alert("当前无法继续执行！（需要提供两张图片）");
+                return;
+            }
+            const width = w1 > w2 ? w1 : w2;
+            const height = h1 > h2 ? h1 : h2;
+            canvas.width = width;
+            canvas.height = height;
+            c.fillStyle = 'white';
+            c.fillRect(0,0,width,height);
+            c.drawImage(img1,(width-w1)/2,(height-h1)/2);
+            const data1 = c.getImageData(0,0,width,height);
+            c.fillStyle = 'black';
+            c.fillRect(0,0,width,height);
+            c.drawImage(img2,(width-w2)/2,(height-h2)/2);
+            const data2 = c.getImageData(0,0,width,height);
+            const result = make(data1, data2);
+            c.putImageData(result,0,0);
+            var a = this.parentElement.getElementsByTagName('a');
+            if (a.length == 1) {
+                a = a[0];
+            } else {
+                a = document.createElement('a');
+                a.innerHTML = "<button>保存图片</button>";
+                this.parentElement.appendChild(a);
+            }
+            a.href = canvas.toDataURL();
+            a.download = "";
+        }
+        input1.onchange = input2.onchange = function() {
+            if (this.files.length == 0) {
+                return;
+            }
+            var img = this.parentElement.getElementsByTagName('img')[0];
+            var reader = new FileReader;
+            reader.readAsDataURL(this.files[0]);
+            reader.onload = () => {
+                img.src = reader.result;
+            }
+        }
+        function make(data1, data2) {
+            const result = new ImageData(data1.width, data1.height);
+            for (let j = 0; j < data1.height; j++) {
+                for (let i = 0; i < data1.width; i++) {
+                    const index = i*4 + j*data1.width*4;
+                    let rgb = 0;
+                    let r = data1.data[index + 0];
+                    let g = data1.data[index + 1];
+                    let b = data1.data[index + 2];
+                    let a = 255 - (r + g + b) / 3;
+                    
+                    if ((i % 2 == 0 && j % 2 == 0) || (i % 2 == 1 && j % 2 == 1)) {
+                        rgb = 255;
+                        r = data2.data[index + 0];
+                        g = data2.data[index + 1];
+                        b = data2.data[index + 2];
+                        a = (r + g + b) / 3;
+                    }
+                    
+                    result.data[index + 0] = rgb;
+                    result.data[index + 1] = rgb;
+                    result.data[index + 2] = rgb;
+                    result.data[index + 3] = a
+                }
+            }
+            return result;
+        }
+    </script>
+</body>
+</html>

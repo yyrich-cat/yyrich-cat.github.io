@@ -19,6 +19,7 @@
             background-position-x: left;
         }
         .start {
+            transition-timing-function: cubic-bezier(0.5, 2.2, 0.5, -1);
             transition-duration: 7500ms;
             transition-delay: 2000ms;
             background-size: 100% 100%;
@@ -65,6 +66,7 @@
         <div class="ch" id="ch"></div>
     </form>
     <a href="canvas.html"><h1>画布</h1></a>
+    <a href="制作隐藏图.html"><h1>制作隐藏图</h1></a>
     <script>
         window.onerror = function (...e){
             alert(e);
@@ -90,9 +92,10 @@
             let str = "#";
             for (let i = 0; i < 3; i++) {
                 let r = params[i].toString(16);
-                if (r.length < 2) {
-                    r = '0' + r;
-                }
+                // if (r.length < 2) {
+                //     r = '0' + r;
+                // }
+                r.padStart(2, "0");
                 str += r;
             }
             return str;
