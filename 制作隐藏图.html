@@ -34,12 +34,16 @@
 <body>
     <div class="wrap">
         <div>选择显示的图片：</div>
-        <input type="file" id="input1" accept="image/*">
+        <div>
+            <input type="file" id="input1" accept="image/*">
+        </div>
         <img id="img1">
     </div>
     <div class="wrap">
         <div>选择隐藏的图片：</div>
-        <input type="file" id="input2" accept="image/*">
+        <div>
+            <input type="file" id="input2" accept="image/*">
+        </div>
         <img id="img2">
     </div>
     <div class="wrap">
@@ -129,14 +133,71 @@
             if (this.files.length == 0) {
                 return;
             }
-            var img = this.parentElement.getElementsByTagName('img')[0];
+            var img = this.parentElement.parentElement.getElementsByTagName('img')[0];
             var reader = new FileReader;
             reader.readAsDataURL(this.files[0]);
             reader.onload = () => {
                 img.src = reader.result;
+                var button = this.parentElement.getElementsByTagName('button');
+                if (button.length == 0) {
+                    button = document.createElement('button');
+                    button.textContent = "黑白";
+                    this.parentElement.appendChild(button);
+                    button.onclick = function() {
+                        var n = parseInt(prompt("输入2~256之间的数字：","8"));
+                        (Number.isNaN(n) || n<2 || n>256) && alert("无效的输入");
+                        const gray = shade(n-1);
+                        var cvs = new OffscreenCanvas(img.naturalWidth,img.naturalHeight);
+                        var c = cvs.getContext('2d');
+                        c.drawImage(img,0,0);
+                        var data = c.getImageData(0,0,img.naturalWidth,img.naturalHeight);
+                        for (let j = 0; j < data.height; j++) {
+                            for (let i = 0; i < data.width; i++) {
+                                const index = (i + j*data.width) * 4;
+                                const r = data.data[index + 0];
+                                const g = data.data[index + 1];
+                                const b = data.data[index + 2];
+                                const gray_value = gray(r,g,b);
+                                data.data[index + 0] = gray_value;
+                                data.data[index + 1] = gray_value;
+                                data.data[index + 2] = gray_value;
+                            }
+                        }
+                        c.putImageData(data,0,0);
+                        cvs.convertToBlob().then((blob) => {
+                            var reader = new FileReader;
+                            reader.readAsDataURL(blob);
+                            reader.onload = () => {
+                                img.src = reader.result;
+                            }
+                        })
+                    }
+                    var button2 = document.createElement('button');
+                    button2.textContent = "还原";
+                    this.parentElement.appendChild(button2);
+                    button2.onclick = ()=>{
+                        this.onchange();
+                    }
+                }
             }
         }
-        function make(data1, data2) {
+        function cpf(j, i) {
+            return (i % 2 == 0 && j % 2 == 0) || (i % 2 == 1 && j % 2 == 1);
+        }
+        function ave(r, g, b) {
+            return (r + g + b) / 3;
+        }
+        function shade(count = 4) {
+            if (count < 1 || 255 < count) {
+                throw RangeError("only accept 1 ~ 255");
+            }
+            const one_part = 255 / count;
+            return function (r, g, b) {
+                var average = (r + g + b) / 3;
+                return Math.round(average/one_part) * one_part;
+            }
+        }
+        function make(data1, data2, whereInsertData2 = cpf, gray = ave) {
             const result = new ImageData(data1.width, data1.height);
             for (let j = 0; j < data1.height; j++) {
                 for (let i = 0; i < data1.width; i++) {
@@ -145,14 +206,14 @@
                     let r = data1.data[index + 0];
                     let g = data1.data[index + 1];
                     let b = data1.data[index + 2];
-                    let a = 255 - (r + g + b) / 3;
+                    let a = 255 - gray(r, g, b);
                     
-                    if ((i % 2 == 0 && j % 2 == 0) || (i % 2 == 1 && j % 2 == 1)) {
+                    if (whereInsertData2(j, i)) {
                         rgb = 255;
                         r = data2.data[index + 0];
                         g = data2.data[index + 1];
                         b = data2.data[index + 2];
-                        a = (r + g + b) / 3;
+                        a = gray(r, g, b);
                     }
                     
                     result.data[index + 0] = rgb;
