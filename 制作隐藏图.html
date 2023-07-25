@@ -6,6 +6,9 @@
     <meta name="viewport" content="width=device-width, initial-scale=1.0">
     <title>生成隐藏图工具</title>
     <style>
+        body {
+            user-select: none;
+        }
         img,canvas {
             display: block;
         }
@@ -129,6 +132,7 @@
                 on_off.onclick = light_off;
             }
         }
+        canvas.onclick = () => { on_off.click(); };
         input1.onchange = input2.onchange = function() {
             if (this.files.length == 0) {
                 return;
@@ -172,10 +176,10 @@
                             }
                         })
                     }
-                    var button2 = document.createElement('button');
-                    button2.textContent = "还原";
-                    this.parentElement.appendChild(button2);
-                    button2.onclick = ()=>{
+                    var restore = document.createElement('button');
+                    restore.textContent = "还原";
+                    this.parentElement.appendChild(restore);
+                    restore.onclick = ()=>{
                         this.onchange();
                     }
                 }
@@ -197,7 +201,7 @@
                 return Math.round(average/one_part) * one_part;
             }
         }
-        function make(data1, data2, whereInsertData2 = cpf, gray = ave) {
+        function make_insert(data1, data2, whereInsertData2 = cpf, gray = ave) {
             const result = new ImageData(data1.width, data1.height);
             for (let j = 0; j < data1.height; j++) {
                 for (let i = 0; i < data1.width; i++) {
@@ -219,10 +223,101 @@
                     result.data[index + 0] = rgb;
                     result.data[index + 1] = rgb;
                     result.data[index + 2] = rgb;
-                    result.data[index + 3] = a
+                    result.data[index + 3] = a;
                 }
             }
             return result;
+        }
+        function choose(a1, a2) {
+            var rgb,alpha;
+            a1 = a1 == 0 ? 1 : a1;
+            a2 = a2 == 0 ? 1 : a2;
+            for (let i = 0; i < 256; i++) {
+                alpha = i / 255;
+                rgb = (a1 - 255) / alpha + 255;
+                if (Math.abs(rgb*alpha - a2) < 1) {
+                    break;
+                }
+            }
+            return {rgb, a:alpha*255};
+        }
+        function choose3(r1,g1,b1, r2,g2,b2) {
+            var r,g,b,alpha;
+            r = choose(r1, r2);
+            g = choose(g1, g2);
+            b = choose(b1, b2);
+            alpha = ave(r.a,g.a,b.a);
+            r = r.rgb;
+            g = g.rgb;
+            b = b.rgb;
+            
+            return {r,g,b, a:alpha};
+        }
+        function make_blend(data1, data2, gray = ave) {
+            const result = new ImageData(data1.width, data1.height);
+            for (let j = 0; j < data1.height; j++) {
+                for (let i = 0; i < data1.width; i++) {
+                    const index = i*4 + j*data1.width*4;
+                    let rgb = 0;
+                    let r = data1.data[index + 0];
+                    let g = data1.data[index + 1];
+                    let b = data1.data[index + 2];
+                    let a1 = gray(r, g, b)  /2 + 128;
+                    r = data2.data[index + 0];
+                    g = data2.data[index + 1];
+                    b = data2.data[index + 2];
+                    let a2 = gray(r, g, b)  /2;
+                    
+                    const cr = choose(a1, a2);
+                    let a = Math.floor(cr.a);
+                    rgb = Math.floor(cr.rgb);
+                    
+                    result.data[index + 0] = rgb;
+                    result.data[index + 1] = rgb;
+                    result.data[index + 2] = rgb;
+                    result.data[index + 3] = a;
+                }
+            }
+            return result;
+        }
+        function make_color(data1, data2, _blackspace = 127, _whitespace = 128) {
+            const _whiteoffset = 255 - _whitespace;
+            const _w = 255 / _whitespace;
+            const _b = 255 / _blackspace;
+            const result = new ImageData(data1.width, data1.height);
+            for (let j = 0; j < data1.height; j++) {
+                for (let i = 0; i < data1.width; i++) {
+                    const index = i*4 + j*data1.width*4;
+                    let r1 = data1.data[index + 0] /_w + _whiteoffset;
+                    let g1 = data1.data[index + 1] /_w + _whiteoffset;
+                    let b1 = data1.data[index + 2] /_w + _whiteoffset;
+                    let r2 = data2.data[index + 0] /_b;
+                    let g2 = data2.data[index + 1] /_b;
+                    let b2 = data2.data[index + 2] /_b;
+                    
+                    const cr = choose3(r1,g1,b1, r2,g2,b2);
+                    let a = Math.floor(cr.a);
+                    let r = Math.floor(cr.r);
+                    let g = Math.floor(cr.g);
+                    let b = Math.floor(cr.b);
+                    
+                    result.data[index + 0] = r;
+                    result.data[index + 1] = g;
+                    result.data[index + 2] = b;
+                    result.data[index + 3] = a;
+                }
+            }
+            return result;
+        }
+        var make = make_blend;
+        on_off.ondblclick = () => {
+            var str = prompt("切换模式 >> [ insert, blend or color ]", "insert");
+            var choose = {
+                insert: make_insert,
+                blend: make_blend,
+                color: make_color
+            };
+            make = choose[str] || make_blend;
         }
         function setTheyStyle(str) {
             img1.style = img2.style = canvas.style = str;
