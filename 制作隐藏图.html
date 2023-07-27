@@ -31,7 +31,23 @@
             padding: 25px;
             border-radius: 25px;
         }
-        
+        @keyframes mv {
+            from {
+                margin-left: -20%;
+            }
+            to {
+                margin-left: 80%;
+            }
+        }
+        .animate {
+            background-color: orange;
+            color: black;
+            line-height: 40px;
+            border-radius: 10px;
+            padding: 0 10px;
+            width: max-content;
+            animation: mv 2s linear 0s infinite alternate;
+        }
     </style>
 </head>
 <body>
@@ -50,6 +66,9 @@
         <img id="img2">
     </div>
     <div class="wrap">
+        <div style="overflow: hidden;">
+            <div class="animate">页面阻塞检测器</div>
+        </div>
         <div>
             <button>生成</button>
             <button>关灯</button>
@@ -108,18 +127,21 @@
             c.fillRect(0,0,width,height);
             c.drawImage(img2,(width-w2)/2,(height-h2)/2,w2,h2);
             const data2 = c.getImageData(0,0,width,height);
-            const result = make(data1, data2);
-            c.putImageData(result,0,0);
-            var a = this.parentElement.getElementsByTagName('a');
-            if (a.length == 1) {
-                a = a[0];
-            } else {
-                a = document.createElement('a');
-                a.innerHTML = "<button>保存图片</button>";
-                this.parentElement.appendChild(a);
-            }
-            a.href = canvas.toDataURL();
-            a.download = "";
+            make(data1, data2).then((result) => {
+                c.putImageData(result,0,0);
+                var btns = this.parentElement.getElementsByTagName('button');
+                if (btns.length == 3) {
+                    const save = document.createElement('button');
+                    save.innerHTML = "保存图片";
+                    this.parentElement.appendChild(save);
+                    save.onclick = () => {
+                        const a = document.createElement('a');
+                        a.href = canvas.toDataURL();
+                        a.download = "";
+                        a.click();
+                    }
+                }
+            });
         }
         on_off.onclick = function light_off() {
             on_off.innerHTML = "开灯";
@@ -309,15 +331,27 @@
             }
             return result;
         }
-        var make = make_blend;
+        var make = function (a, b) {
+            var fn = make_blend.async.bind(make_blend,{choose,ave});
+            return fn(new Transfer(a, [a.data.buffer]), new Transfer(b, [b.data.buffer]));
+        }
         on_off.ondblclick = () => {
             var str = prompt("切换模式 >> [ insert, blend or color ]", "insert");
-            var choose = {
-                insert: make_insert,
-                blend: make_blend,
-                color: make_color
+            var obj = {
+                insert: function (a, b) {
+                    var fn = make_insert.async.bind(make_insert,{cpf,ave})
+                    return fn(new Transfer(a, [a.data.buffer]), new Transfer(b, [b.data.buffer]));
+                },
+                blend: function (a, b) {
+                    var fn = make_blend.async.bind(make_blend,{choose,ave})
+                    return fn(new Transfer(a, [a.data.buffer]), new Transfer(b, [b.data.buffer]));
+                },
+                color: function (a, b) {
+                    var fn = make_color.async.bind(make_color,{choose,choose3,ave})
+                    return fn(new Transfer(a, [a.data.buffer]), new Transfer(b, [b.data.buffer]));
+                },
             };
-            make = choose[str] || make_blend;
+            make = obj[str] || obj.blend;
         }
         function setTheyStyle(str) {
             img1.style = img2.style = canvas.style = str;
@@ -340,6 +374,63 @@
         resize.onclick = function () {
             document.getElementsByClassName('layer')[0].style.display = "block";
         }
+        
+        class Transfer {
+            constructor(data, transfer) {
+                this.data = data;
+                this.transfer = transfer;
+            }
+        }
+        Function.prototype.async = function (outer, ...args) {
+            var str = `self.onmessage = (data)=> {
+                if(data.data.q == 'eval') {
+                    var returnValue = (0,eval)(data.data.d);
+                    self.postMessage({q:"returnValue",d:returnValue});
+                } else if(data.data.q.includes('var')) {
+                    var d = (0,eval)(data.data.d);
+                    if(typeof(d) == 'undefined') {
+                        (0,eval)(data.data.q+"="+data.data.d);
+                    } else {
+                        var name = data.data.q.split(' ')[1];
+                        globalThis[name] = d;
+                    }
+                } else {
+                    self.postMessage(data.data);
+                }
+            }`
+            var worker = new Worker('data:text/javascript;base64,'+btoa(str));
+            var resolve_the_promise;
+            var promise = new Promise((resolve) => {
+                resolve_the_promise = resolve;
+            });
+            worker.onmessage = (data) => {
+                if (data.data.q == 'returnValue') {
+                    resolve_the_promise(data.data.d);
+                    worker.terminate();
+                }
+            }
+            for (const key in outer) {
+                const transfer = outer[key] instanceof Transfer ? outer[key].transfer : [];
+                outer[key] = outer[key] instanceof Transfer ? outer[key].data : outer[key];
+                if (typeof(outer[key]) == "function") {
+                    worker.postMessage({q:"var "+key, d:outer[key].toString()}, transfer);
+                } else {
+                    worker.postMessage({q:"var "+key, d:outer[key]}, transfer);
+                }
+            }
+            var identifiers = [];
+            for (let i = 0; i < args.length; i++) {
+                const transfer = args[i] instanceof Transfer ? args[i].transfer : [];
+                args[i] = args[i] instanceof Transfer ? args[i].data : args[i];
+                const k = '__arg'+i;
+                worker.postMessage({q:"var "+k, d:args[i]}, transfer);
+                identifiers.push(k);
+            }
+            worker.postMessage({q:"var "+this.name, d:this.toString()});
+            worker.postMessage({q:"eval", d:this.name+"("+identifiers+")"});
+            return promise;
+        }
+        
     </script>
 </body>
 </html>
