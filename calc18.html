@@ -1,0 +1,58 @@
+<!DOCTYPE html>
+<html lang="zh">
+<head>
+    <meta charset="UTF-8">
+    <meta http-equiv="X-UA-Compatible" content="IE=edge">
+    <meta name="viewport" content="width=device-width, initial-scale=1.0">
+    <title>click document</title>
+</head>
+<body>
+    <script>
+        const calcID18 = function () {
+            const qz = [7, 9, 10, 5, 8, 4, 2, 1, 6, 3, 7, 9, 10, 5, 8, 4, 2];
+            const rs = ['1', '0', 'X', '9', '8', '7', '6', '5', '4', '3', '2'];
+            
+            return function (id) {
+                if (typeof(id) != "string" || id.length != 17) {
+                    throw Error("必须传入17位数字的字符串");
+                }
+                const ids = id.split('').map(e=>Number(e));
+                const sum = ids.reduce((count, current)=>count+current, 0);
+                return rs[sum%11];
+            }
+        }();
+        document.onclick = function () {
+            try {
+                const input = prompt('输入17位数字');
+                if (input == null) {
+                    return;
+                }
+                if (input.length == 16) {
+                    document.body.innerText = '女：\n'
+                    let i = 0;
+                    while (i < 10) {
+                        printResult(input + i)
+                        i+=2
+                    }
+                    document.body.innerText += "男：\n"
+                    i = 1;
+                    while (i < 10) {
+                        printResult(input + i)
+                        i+=2
+                    }
+                    return;
+                }
+                document.body.innerText = '';
+                printResult(input);
+                function printResult(input) {
+                    const result = calcID18(input);
+                    const r = "计算结果: "+result+"\n"+input+result;
+                    document.body.innerText += input + '\n' + r + '\n\n';
+                }
+            } catch (error) {
+                alert(error);
+            }
+        }
+    </script>
+</body>
+</html>
