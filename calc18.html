@@ -17,7 +17,7 @@
                     throw Error("必须传入17位数字的字符串");
                 }
                 const ids = id.split('').map(e=>Number(e));
-                const sum = ids.reduce((count, current)=>count+current, 0);
+                const sum = ids.reduce((count, current, i)=>count+current*qz[i], 0);
                 return rs[sum%11];
             }
         }();
