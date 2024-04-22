@@ -255,6 +255,17 @@ class App {
     init() {
         this.render();
         const list = document.getElementById('list');
+        list.oncontextmenu = function (e) {
+            const element = e.target.parentElement;
+            if (element.className == 'info') {
+                e.preventDefault();
+                if (confirm('是否删除？')) {
+                    const code = element.innerText.split('\n')[1];
+                    app.removeStock(code);
+                    app.init();
+                }
+            }
+        }
         function add_item(name = '--', code = '--') {
             const div = (className, innerText = '') => {
                 const div = document.createElement('div');
@@ -355,6 +366,16 @@ class App {
             return;
         }
         stocks.push({ code, name });
+        localStorage.setItem('stocks', JSON.stringify(stocks));
+    }
+    removeStock(code) {
+        const stocks = this.readStocks();
+        const index = stocks.findIndex(x => x.code == code);
+        if (index == -1) {
+            alert('不存在');
+            return;
+        }
+        stocks.splice(index, 1);
         localStorage.setItem('stocks', JSON.stringify(stocks));
     }
 }
