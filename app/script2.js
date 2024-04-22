@@ -68,12 +68,167 @@ const fetch_data = {
             const result = JSON.parse(txt);
             return result.Result;
         });
+    },
+    analysis(code) {
+        var url =  `https://finance.pae.baidu.com/vapi/v1/ana
+        lysis?code=${code}&market=ab&finClientType=pc`;
+        url = url.replaceAll('\n','').replaceAll(' ','');
+        return fetch(url).then(x=>x.text()).then(txt=>{
+            const result = JSON.parse(txt);
+            return result.Result;
+        });
     }
+}
+
+class Modal {
+    constructor() {
+        this.modal = document.createElement('div');
+        this.modal.className = 'modal';
+        this.modal.innerHTML = `
+            <div class="modal-content">
+                <span class="close">&times;</span>
+                <p>Hello World!</p>
+            </div>
+        `;
+        document.body.appendChild(this.modal);
+        this.modal.querySelector('.close').addEventListener(
+            'click', () => {
+                this.hide();
+            }
+        );
+        const style = document.createElement('style');
+        style.innerHTML = `
+            .modal {
+                display: none;
+                position: fixed;
+                z-index: 1;
+                left: 0;
+                top: 0;
+                width: 100%;
+                height: 100%;
+                overflow: auto;
+                background-color: rgba(0,0,0,0.4);
+            }
+            .modal-content {
+                background-color: #fefefe;
+                margin: 15% auto;
+                padding: 20px;
+                border: 1px solid #888;
+                width: 80%;
+            }
+            .close {
+                color: #aaa;
+                float: right;
+                font-size: 28px;
+                font-weight: bold;
+                cursor: pointer;
+                &:hover,
+                &:focus {
+                    color: black;
+                    text-decoration: none;
+                    cursor: pointer;
+                }
+            }
+        `;
+        document.head.appendChild(style);
+    }
+    setContent(content) {
+        this.modal.querySelector('.modal-content p').innerHTML = content;
+    }
+    show() {
+        this.modal.style.display = 'block';
+    }
+    hide() {
+        this.modal.style.display = 'none';
+    }
+    showModal(content) {
+        this.setContent(content);
+        this.show();
+    }
+}
+function getFragment() {
+    const html = `
+    <div>
+        <div class="input_code">股票代码: <input id="stock_code" type="text" placeholder="请输入股票代码"></div>
+        <div class="input_name">股票名称: <input id="stock_name" type="text" placeholder="请输入股票名称"><span id="stock_name_result"></span></div>
+        <div id="stock_add">确定</div>
+    </div>`;
+    const style = document.createElement('style');
+    style.innerHTML = `
+        #stock_add {
+            height: var(--flex-height);
+            display: flex;
+            justify-content: center;
+            align-items: center;
+            cursor: pointer;
+            &:hover {
+                background-color: rgb(222, 222, 222);
+            }
+            &:active {
+                background-color: rgb(222, 222, 222);
+            }
+            &:focus {
+                outline: none;
+            }
+        }
+    `;
+    document.head.appendChild(style);
+    return html;
 }
 
 class App {
     constructor() {
-
+        this.modal = new Modal();
+        this.modal.setContent(getFragment());
+        const stock_code_input = this.modal.modal.querySelector('#stock_code');
+        const stock_name_input = this.modal.modal.querySelector('#stock_name');
+        const stock_name_span = this.modal.modal.querySelector('#stock_name_result');
+        stock_code_input.oninput = () => {
+            const code = stock_code_input.value;
+            if (code.length == 6) {
+                const found = SH_stocks.find(x => x.code == code);
+                if (found) {
+                    stock_name_input.value = found.name;
+                } else {
+                    fetch_data.analysis(code).then(x => {
+                        let n = x ? x.technologyScore.increase.items[0].name : "UNDEFINED";
+                        stock_name_input.value = n;
+                    });
+                }
+            }
+        };
+        stock_name_input.oninput = () => {
+            const name = stock_name_input.value;
+            if (name.length > 0) {
+                const found = SH_stocks.find(x => x.name.includes(name));
+                if (found) {
+                    stock_code_input.value = found.code;
+                    stock_name_span.innerHTML = found.name;
+                } else {
+                    stock_code_input.value = '';
+                    stock_name_span.innerHTML = '沪未找到';
+                }
+            } else {
+                stock_code_input.value = '';
+                stock_name_span.innerHTML = '';
+            }
+        };
+        stock_name_input.onblur = () =>{
+            stock_name_span.innerHTML = '';
+            stock_code_input.oninput();
+        };
+        this.modal.modal.querySelector('#stock_add').addEventListener(
+            'click', () => {
+                console.log('点击了确定');
+                const code = stock_code_input.value;
+                const name = stock_name_input.value;
+                if (code && name) {
+                    this.addStock(code, name);
+                    this.init();
+                    this.modal.hide();
+                }
+            }
+        );
     }
     render() {
         const root = document.getElementById('root');
@@ -92,7 +247,7 @@ class App {
                     <div class="low">最低</div>
                 </div>
             </div>
-            <div id="add">添加股票</div>
+            <div id="add" onclick="app.modal.show()">添加股票</div>
         </div>
         <div id="footer">底部栏</div>`;
         root.innerHTML = html;
@@ -146,50 +301,61 @@ class App {
             }
             return new Proxy(target, handle);
         }
-        var p = add_item("湘财股份", "600095");
-        this.handle(p);
-        p = add_item("邮储银行", "601658");
-        this.handle(p);
-        p = add_item("中国平安", "601318");
-        this.handle(p);
-        p = add_item("中国中铁", "601390");
-        this.handle(p);
-        p = add_item("南网储能", "600995");
-        this.handle(p);
+        function handle(item) {
+            function isClosed(data) {
+                return data.update.stockStatus == "已收盘";
+            }
+            function style_up(str) {
+                return "<span style='color:#f33'>" + str + "</span>";
+            }
+            function style_down(str) {
+                return "<span style='color:#00b05a'>" + str + "</span>";
+            }
+            function refresh(data) {
+                const { cur, pankouinfos } = data;
+                const ratio = parseFloat(cur.ratio);
+                const changeRate = ratio.toFixed(2)+"%";
+                const change = parseFloat(cur.increase).toFixed(2);
+                let span = (ratio > 0 ? style_up : ratio < 0 ? style_down : (x) => "" + x)
+                
+                item.price = span(cur.price);
+                item.changeRate = span(changeRate);
+                item.change = span(change);
+    
+                const { preClose, open, high, low } = pankouinfos.origin_pankou;
+                const _preClose = parseFloat(preClose);
+                const _open = parseFloat(open);
+                const _high = parseFloat(high);
+                const _low = parseFloat(low);
+                
+                item.preClose = preClose;
+                item.open = (_open > _preClose ? style_up(open) : _open < _preClose ? style_down(open) : open);
+                item.high = (_high > _preClose ? style_up(high) : _high < _preClose ? style_down(high) : high);
+                item.low = (_low > _preClose ? style_up(low) : _low < _preClose ? style_down(low) : low);
+            }
+            fetch_data.minute(item.code).then((data) => refresh(data));
+        }
+        const stocks = this.readStocks();
+        for(let i = 0; i < stocks.length; i++) {
+            const item = add_item(stocks[i].name, stocks[i].code);
+            handle(item);
+        }
     }
-    handle(item) {
-        function isClosed(data) {
-            return data.update.stockStatus == "已收盘";
+    readStocks() {
+        const stocks = localStorage.getItem('stocks');
+        if (stocks) {
+            return JSON.parse(stocks);
         }
-        function style_up(str) {
-            return "<span style='color:#f33'>" + str + "</span>";
+        return [];
+    }
+    addStock(code, name) {
+        const stocks = this.readStocks();
+        if (stocks.find(x => x.code == code)) {
+            alert('已存在');
+            return;
         }
-        function style_down(str) {
-            return "<span style='color:#00b05a'>" + str + "</span>";
-        }
-        fetch_data.minute(item.code).then((data) => {
-            const { cur, pankouinfos } = data;
-            const ratio = parseFloat(cur.ratio);
-            const changeRate = ratio.toFixed(2)+"%";
-            const change = parseFloat(cur.increase).toFixed(2);
-            let span = (ratio > 0 ? style_up : ratio < 0 ? style_down : (x) => "" + x)
-            
-            console.log(data);
-            item.price = span(cur.price);
-            item.changeRate = span(changeRate);
-            item.change = span(change);
-
-            const { preClose, open, high, low } = pankouinfos.origin_pankou;
-            const _preClose = parseFloat(preClose);
-            const _open = parseFloat(open);
-            const _high = parseFloat(high);
-            const _low = parseFloat(low);
-            
-            item.preClose = preClose;
-            item.open = (_open > _preClose ? style_up(open) : _open < _preClose ? style_down(open) : open);
-            item.high = (_high > _preClose ? style_up(high) : _high < _preClose ? style_down(high) : high);
-            item.low = (_low > _preClose ? style_up(low) : _low < _preClose ? style_down(low) : low);
-        });
+        stocks.push({ code, name });
+        localStorage.setItem('stocks', JSON.stringify(stocks));
     }
 }
 
