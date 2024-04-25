@@ -255,6 +255,17 @@ class App {
     init() {
         this.render();
         const list = document.getElementById('list');
+        function bindLongPress(element, callback) {
+            let timer = null;
+            element.addEventListener('touchstart', function (e) {
+                timer = setTimeout(() => {
+                    callback.call(this, e);
+                }, 500);
+            });
+            element.addEventListener('touchend', e => {
+                clearTimeout(timer);
+            });
+        }
         list.oncontextmenu = function (e) {
             const element = e.target.parentElement;
             if (element.className == 'info') {
@@ -266,6 +277,7 @@ class App {
                 }
             }
         }
+        bindLongPress(list, list.oncontextmenu);
         function add_item(name = '--', code = '--') {
             const div = (className, innerText = '') => {
                 const div = document.createElement('div');
