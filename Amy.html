@@ -1,0 +1,149 @@
+<!DOCTYPE html>
+<html lang="zh">
+
+<head>
+    <meta charset="UTF-8">
+    <meta name="viewport" content="width=device-width, initial-scale=1.0">
+    <title>Monaco Editor Example</title>
+    <style>
+        body {
+            margin: 0;
+        }
+        .cannot-select {
+            -webkit-user-select: none;
+            -moz-user-select: none;
+            -ms-user-select: none;
+            user-select: none;
+        }
+        #messages {
+            font-family: Simsun;
+            font-size: 12px;
+            height: 200px;
+            overflow: auto;
+        }
+        #messages > div,
+        .flex-wraper {
+            display: flex;
+            column-gap: .5em;
+            flex-wrap: wrap;
+        }
+        #messages > div {
+            border-bottom: solid 1px pink;
+            margin: 0 2em;
+        }
+    </style>
+</head>
+
+<body>
+    <div class="flex-wraper cannot-select">
+        <div style="padding: 10px; border-radius: 5px; background-color:pink; width: fit-content;" id="click-run">RUN</div>
+        <div style="padding: 10px; border-radius: 5px; background-color:pink; width: fit-content;" id="click-undo">UNDO</div>
+        <div style="padding: 10px; border-radius: 5px; background-color:pink; width: fit-content;" id="click-redo">REDO</div>
+        <div style="padding: 10px; border-radius: 5px; background-color:aqua; width: fit-content;" id="click-prev">prev</div>
+        <div style="padding: 10px; border-radius: 5px; background-color:aqua; width: fit-content;" id="click-next">next</div>
+        <div style="padding: 10px; border-radius: 5px; background-color:aqua; width: fit-content;" id="click-clear">clear</div>
+    </div>
+    <div id="container" style="width: 100%; height: 400px;"></div>
+
+    <div id="messageContainer">
+        <div id="messages"></div>
+    </div>
+    <script src="/app/amy.js"></script>
+    <script>
+
+        (async function () {
+            window.meditor = await createEditor(document.getElementById("container"));
+        })();
+
+        (function () {
+            const button = document.getElementById("click-run");
+            const undo = document.getElementById("click-undo");
+            const redo = document.getElementById("click-redo");
+
+            const contents = [];
+            
+            const prev = document.getElementById("click-prev");
+            const next = document.getElementById("click-next");
+            const clear = document.getElementById("click-clear");
+            button.addEventListener("click", function () {
+                const code = window.meditor.getValue();
+                takeCode(code);
+                try {
+                    const result = (0, eval)(code);
+                    console.log(result);
+                } catch (error) {
+                    console.dir(error);
+                }
+            });
+            undo.addEventListener("click", function () {
+                window.meditor.getModel().undo()
+            });
+            redo.addEventListener("click", function () {
+                window.meditor.getModel().redo()
+            });
+
+            function takeCode (str) {
+                contents.push(str);
+                window.meditor.setValue("");
+                prevFunc = getFunc();
+                nextFunc = getFunc(-1);
+            }
+
+            function getFunc(index) {
+                if (index === undefined) {
+                    index = contents.length - 1;
+                } else if (index < 0 || index >= contents.length) {
+                    return function () {};
+                }
+                return function () {
+                    window.meditor.setValue(contents[index]);
+                    prevFunc = getFunc(index - 1);
+                    nextFunc = getFunc(index + 1);
+                }
+            }
+            let prevFunc = getFunc();
+            let nextFunc = getFunc(-1);
+
+            prev.addEventListener("click", function () {
+                prevFunc();
+            });
+            next.addEventListener("click", function () {
+                nextFunc();
+            });
+
+
+            clear.addEventListener("click", function () {
+                alice.clear();
+            });
+        })();
+
+        const alice = {
+            container : document.querySelector("div#messages"),
+            log (...data) {
+                const div = document.createElement("div");
+                const divs = data.map(item => {
+                    const result = document.createElement("div");
+                    result.innerText = item;
+                    return result;
+                });
+                div.append(...divs);
+                this.container.append(div);
+            },
+            clear () {
+                this.container.innerHTML = "";
+            }
+        };
+        
+        if (localStorage.amy){
+            Promise.resolve().then(() => {
+                const amy = JSON.parse(localStorage.amy);
+                if (amy.main && typeof amy.main === "string") {
+                    (0, eval)(amy.main);
+                }
+            })
+        }
+        
+    </script>
+</body>
+
+</html>
